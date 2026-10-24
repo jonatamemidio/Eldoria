@@ -150,7 +150,7 @@ canvas#c{width:100%;height:100%;display:block;touch-action:none}
 </svg>
 <div class="ui"><div class="logo"><svg class="crown" viewBox="0 0 120 70"><defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".6" stop-color="#f0b030"/><stop offset="1" stop-color="#9a5a0e"/></linearGradient></defs><path d="M8 62 L14 20 L38 40 L60 6 L82 40 L106 20 L112 62Z" fill="url(#gd)" stroke="#34200a" stroke-width="3" stroke-linejoin="round"/><circle cx="14" cy="18" r="5" fill="#ffd25a" stroke="#34200a" stroke-width="2"/><circle cx="60" cy="8" r="5" fill="#ffd25a" stroke="#34200a" stroke-width="2"/><circle cx="106" cy="18" r="5" fill="#ffd25a" stroke="#34200a" stroke-width="2"/><path d="M60 40 l8 10 l-8 10 l-8 -10z" fill="#3a8ae0" stroke="#10306a" stroke-width="2"/></svg><h1>ELDORIA</h1><div class="sub">Mundo Aberto</div></div>
 <div class="menu"><button class="mb main" onclick="tSingle()">▶ Single player</button><button class="mb" onclick="tMulti()">👥 Multiplayer</button></div>
-<div class="foot">Grandes aventuras te esperam<br><a id="tEdit" onclick="openCreator(null)" style="display:none">✎ Editar personagem</a><div style="opacity:.55;font-size:10px;margin-top:6px;letter-spacing:.1em">v12 · ataques animados</div></div></div></div>
+<div class="foot">Grandes aventuras te esperam<br><a id="tEdit" onclick="openCreator(null)" style="display:none">✎ Editar personagem</a><div style="opacity:.55;font-size:10px;margin-top:6px;letter-spacing:.1em">v13 · goblins novos</div></div></div></div>
 <div id="mpm" class="off"><div class="box"><h2>Multiplayer</h2><p class="sm">Jogue com amigos pela internet: um cria a sala e passa o código, os outros entram com ele.</p>
 <button class="mb main" onclick="mpCreate()">Criar sala</button><div class="or">ou entre em uma sala</div><input id="mpc" type="text" maxlength="5" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="mb" onclick="mpEnter()">Entrar na sala</button>
 <div id="mpst"></div><div id="mpcode"></div><button class="mb main off" id="mpgo" onclick="tHide()">Entrar no mundo</button><button class="mb sec" onclick="mpBack()">Voltar</button>
@@ -430,11 +430,31 @@ function mobReward(o,mine,bones){addXp('combate',o.kx||14);say(mine?'Você derro
   if(o.gold){pay(o.gold);say('Você ganha '+o.gold+' moedas.','g')}}
  if(o.nm=='lobo'&&q.lobos==1)q.kills++;q.k[o.nm]=(q.k[o.nm]||0)+1;render()}
 function mobStrike(w){const n=wolfSwing(w);me.hp-=n;hit(w);splat(me,n);say(n?'O '+w.nm+' te acerta! (-'+n+')':'O '+w.nm+' erra o golpe.',n?'r':'');if(me.hp>0&&!me.act&&!me.target)startAct(w);hud();if(me.hp<=0)morrer()}
+// ===== v13: APARÊNCIA DOS GOBLINS (baixos, pele verde, orelhas grandes, chapéu marrom, colete) =====
+function mkGoblin(king){const SK=0x8fa631,g=humanV1(king?0x8a3030:0xc9b88a,king?0x3a2a2a:0x4a5a2a,0x5a3a22,SK),sk=M(SK,.65),dkb=M(0x2a1c10,.8),leather=M(0x4a3020,.85),hd=g.hd,tor=g.tor,hc=hd.children;
+ hd.scale.set(1.2,1.15,1.15);tor.rotation.x=.12;
+ hc[1].material=M(king?0x7a1a1a:0x5a3a22,.9);hc[1].visible=!king;
+ hc[2].material=hc[3].material=M(0xd8402a,.3);hc[2].scale.setScalar(1.7);hc[3].scale.setScalar(1.7);
+ hc[4].visible=hc[5].visible=hc[6].visible=false;
+ add(new THREE.ConeGeometry(.05,.17,8),sk,0,-.01,.24,hd).rotation.x=Math.PI/2+.25;
+ [-1,1].forEach(sd=>{const e=add(new THREE.ConeGeometry(.1,.38,6),sk,sd*.25,.07,-.03,hd);e.rotation.z=-sd*1.3;e.scale.z=.45;
+  const ei=add(new THREE.ConeGeometry(.065,.28,6),M(0xc4524a,.7),sd*.255,.07,0,hd);ei.rotation.z=-sd*1.3;ei.scale.z=.4;
+  add(new THREE.BoxGeometry(.085,.02,.03),dkb,sd*.075,.075,.185,hd).rotation.z=sd*.45;
+  add(new THREE.ConeGeometry(.012,.04,5),M(0xf0ead8,.5),sd*.032,-.065,.195,hd)});
+ add(new THREE.BoxGeometry(.09,.012,.02),dkb,0,-.075,.19,hd);
+ if(!king)add(new THREE.ConeGeometry(.12,.34,10),hc[1].material,0,.27,-.07,hd).rotation.x=-.5;
+ const vest=add(new THREE.CylinderGeometry(.325,.275,.5,14),M(king?0x5a1a1a:0x55391f,.9),0,1.26,0,tor);vest.scale.z=.62;
+ add(new THREE.BoxGeometry(.11,.46,.02),M(king?0xc9b88a:0xd9c9a0,.9),0,1.25,.205,tor);
+ add(new THREE.BoxGeometry(.13,.11,.07),leather,.2,.9,.12,tor);add(new THREE.BoxGeometry(.07,.06,.02),M(0xc8a030,.3),0,.97,.18,tor);
+ [g.eL,g.eR].forEach(e=>{e.scale.y=1.15;add(new THREE.CylinderGeometry(.085,.075,.12,10),leather,0,-.26,0,e);e.children[2].scale.setScalar(1.35)});
+ [g.kL,g.kR].forEach(k=>{const c=k.children;c[0].material=sk;c[1].material=sk;c[2].visible=false;add(new THREE.BoxGeometry(.17,.07,.34),sk,0,-.41,.1,k);
+  [-.06,0,.06].forEach(x=>{add(new THREE.ConeGeometry(.028,.12,6),M(0xe8dcc0,.6),x,-.41,.31,k).rotation.x=Math.PI/2})});
+ g.scale.setScalar(king?1.35:.8);return g}
 function mkEnemy(nm,x,z,o2,build){if(x<450)[x,z]=safeSpot(x,z);const g=build(),l=label(nm[0].toUpperCase()+nm.slice(1)+' - Nível '+Math.max(1,Math.round(((o2.atk||0)+(o2.str||0)+(o2.def||0))/6+(o2.mhp||0)/6)),'#ff8080',.7);l.position.y=o2.ly||2.3;g.add(l);
  const bc=document.createElement('canvas');bc.width=128;bc.height=24;const bs=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(bc),depthTest:false,transparent:true,fog:false}));bs.scale.set(1.8,.34,1);bs.position.y=(o2.ly||2.3)+.55;bs.visible=false;g.add(bs);
  g.position.set(x,H(x,z),z);S.add(g);
  const o=Object.assign({t:'wolf',x,z,hx:x,hz:z,range:2.3,g,lg:[g.lL,g.lR,g.aL,g.aR],dead:0,cd:0,bc,bs,bt:0,dbon:0,ln:0,nm},o2);o.hp=o.mhp;g.userData.o=o;pick.push(g);OBJ.push(o);W.push(o)}
-[[10,-100],[25,-112],[-2,-115],[35,-96],[18,-90]].forEach(([x,z])=>mkEnemy('goblin',x,z,{mhp:7,atk:6,str:8,def:5,kx:12,drops:[['pocao',.15],['arco',.03]]},()=>{const g=human(0x5a4a2a,0x3a3020,0x2a3a1a,0x6a9a3a);g.scale.setScalar(.85);return g}));
+[[10,-100],[25,-112],[-2,-115],[35,-96],[18,-90]].forEach(([x,z])=>mkEnemy('goblin',x,z,{mhp:7,atk:6,str:8,def:5,kx:12,ly:2.75,drops:[['pocao',.15],['arco',.03]]},()=>mkGoblin(0)));
 [[-40,95],[-55,115],[-28,118],[-50,88]].forEach(([x,z])=>mkEnemy('esqueleto',x,z,{mhp:10,atk:12,str:20,def:12,kx:22,drops:[['runa',.5,5],['flecha',.4,6],['capacete',.05]]},()=>human(0xd8d4c0,0xc8c4b0,0xd8d4c0,0xe8e4d0)));
 // cenário: acampamento goblin e cripta
 {const tent=(x,z,c)=>{const t=new THREE.Mesh(new THREE.ConeGeometry(1.8,2.4,6),M(c));t.position.set(x,H(x,z)+1.2,z);t.castShadow=true;S.add(t)};
@@ -461,7 +481,7 @@ function cookOld(o){if(!cnt('peixe')){say('Você não tem peixe cru.');me.act=nu
  take('peixe',1);
  if(Math.random()<Math.max(.1,.55-lvl(xp.cozinha)*.03)){give('peixec');addXp('cozinha',30);say('Você assa o peixe com perfeição.')}else{give('peixeq');say('Você queima o peixe.')}}
 // chefe: Rei Goblin
-mkEnemy('rei goblin',15,-115,{mhp:30,atk:14,str:34,def:16,kx:90,rs:90,gold:150,drops:[['escudo',1],['capacete',.5],['pocao',1,2]]},()=>{const g=human(0x7a1a1a,0x3a2020,0x2a3a1a,0x5a8a30);g.scale.setScalar(1.4);add(new THREE.CylinderGeometry(.19,.21,.1,8),M(0xffcc33,.3),0,.24,0,g.hd);[0,2.1,4.2].forEach(a=>add(new THREE.ConeGeometry(.04,.1,5),M(0xffcc33,.3),Math.sin(a)*.16,.32,Math.cos(a)*.16,g.hd));return g});
+mkEnemy('rei goblin',15,-115,{mhp:30,atk:14,str:34,def:16,kx:90,rs:90,gold:150,ly:3.1,drops:[['escudo',1],['capacete',.5],['pocao',1,2]]},()=>{const g=mkGoblin(1);add(new THREE.CylinderGeometry(.19,.21,.1,8),M(0xffcc33,.3),0,.24,0,g.hd);[0,2.1,4.2].forEach(a=>add(new THREE.ConeGeometry(.04,.1,5),M(0xffcc33,.3),Math.sin(a)*.16,.32,Math.cos(a)*.16,g.hd));return g});
 // ===== BANCO, MINERAÇÃO, MONTANHA E ILHA =====
 Object.assign(xp,{mineracao:0});SKL.push('mineracao');Object.assign(NM,{mineracao:'Mineração'});Object.assign(IC,{mineracao:'⛏️'});
 const BANK=Array(80).fill(null);let bq=1;
@@ -760,7 +780,7 @@ const ring=(cx,cz,n,r,f)=>{for(let i=0;i<n;i++){const a=i*6.283/n+.4;f(cx+Math.c
 ring(T[3].x,T[3].z,4,55,(x,z)=>mkEnemy('urso',x,z,{mhp:25,atk:16,str:24,def:14,kx:35,ly:1.4,drops:[['carne',.8],['pocao',.3],['pocaom',.2]]},qb(0xe8eef2,0xcfd8e0,2,0)));
 ring(T[6].x,T[6].z,4,55,(x,z)=>mkEnemy('chacal',x,z,{mhp:14,atk:12,str:16,def:8,kx:24,ly:1.1,drops:[['carne',.6],['pocao',.2],['flecha',.4,6]]},qb(0xc8a050,0xe8d090,1.3,1)));
 ring(T[5].x,T[5].z,4,55,(x,z)=>mkEnemy('javali',x,z,{mhp:12,atk:9,str:12,def:8,kx:20,ly:1,drops:[['carne',.7],['pocao',.15]]},qb(0x6a4a2a,0x8a6a4a,1.4,0)));
-ring(T[4].x,T[4].z,3,55,(x,z)=>mkEnemy('goblin',x,z,{mhp:7,atk:6,str:8,def:5,kx:12,drops:[['pocao',.15],['arco',.03]]},()=>{const g=human(0x5a4a2a,0x3a3020,0x2a3a1a,0x6a9a3a);g.scale.setScalar(.85);return g}));
+ring(T[4].x,T[4].z,3,55,(x,z)=>mkEnemy('goblin',x,z,{mhp:7,atk:6,str:8,def:5,kx:12,ly:2.75,drops:[['pocao',.15],['arco',.03]]},()=>mkGoblin(0)));
 ring(T[4].x,T[4].z,3,70,(x,z)=>mkEnemy('esqueleto',x,z,{mhp:10,atk:12,str:20,def:12,kx:22,drops:[['runa',.5,5],['flecha',.4,6],['capacete',.05]]},SKB));
 // minerios perto de Rocha Negra e pontos de pesca na costa leste
 function mkRock(x,z,ore){const g=new THREE.Group();g.position.set(x,H(x,z),z);add(new THREE.DodecahedronGeometry(.9),M(0x6e6e6a),0,.6,0,g).scale.set(1.2,.9,1);
