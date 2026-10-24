@@ -1,0 +1,16 @@
+ELDORIA - como publicar (GitHub Pages, grátis)
+
+1. Crie uma conta em github.com e um repositório novo (público), por exemplo "eldoria".
+2. Em "Add file > Upload files", envie TODOS os arquivos desta pasta (index.html, sw.js,
+   manifest.webmanifest e os 4 ícones .png). Confirme em "Commit changes".
+3. Vá em Settings > Pages. Em "Branch" escolha "main" e a pasta "/ (root)". Salve.
+4. Em 1 a 2 minutos o jogo fica em: https://SEU-USUARIO.github.io/eldoria/
+5. Mande esse link para seus amigos.
+
+Instalar no celular
+- Android (Chrome): abrir o link > menu ⋮ > "Instalar app" ou "Adicionar à tela inicial".
+- iPhone (precisa ser o Safari): abrir o link > botão Compartilhar > "Adicionar à Tela de Início".
+
+Jogar juntos: um toca em Multiplayer > Criar sala e passa o código; os outros entram com ele.
+
+Atualizar o jogo depois: envie o novo index.html e troque o número de VERSAO no sw.js (ex.: eldoria-v2).
