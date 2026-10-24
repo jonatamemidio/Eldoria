@@ -257,7 +257,10 @@ function humanV1(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86){const g=new THREE.Group(
  const leg=x=>{const h=new THREE.Group();h.position.set(x,.88,0);g.add(h);add(new THREE.CylinderGeometry(.115,.09,.44,10),pm,0,-.22,0,h);const k=new THREE.Group();k.position.y=-.44;h.add(k);add(new THREE.SphereGeometry(.09,10,8),pm,0,0,0,k);add(new THREE.CylinderGeometry(.085,.065,.4,10),pm,0,-.2,0,k);add(new THREE.BoxGeometry(.15,.1,.3),dk,0,-.4,.07,k);return[h,k]};
  [g.lL,g.kL]=leg(-.14);[g.lR,g.kR]=leg(.14);return g}
 function pose(g,t,mode){poseCore(g,t,mode);g.tor.rotation.y*=-1;g.aL.rotation.z*=-1;g.aR.rotation.z*=-1}
-function poseCore(g,t,mode){const w=t*9,s=Math.sin(w)*.75,c=Math.cos(w),br=Math.sin(t*2)*.02;
+function poseCore(g,t,mode){poseCore0(g,t,mode);if(!g.tor||!g.hd)return;const s=Math.sin(t*9),w=mode=='walk';
+ g.tor.rotation.z=w?s*.035:0;g.hd.rotation.y=w?s*.12:0;const br=Math.sin(t*2);g.tor.scale.set(1+br*.006,1+br*.012,1);
+ if(g.cape&&g.cape.parent){g.cape.rotation.x=w?.14+Math.abs(s)*.28:.07+Math.sin(t*1.5)*.03;g.cape.rotation.z=w?s*.05:0}}
+function poseCore0(g,t,mode){const w=t*9,s=Math.sin(w)*.75,c=Math.cos(w),br=Math.sin(t*2)*.02;
  g.lL.rotation.x=g.lR.rotation.x=g.kL.rotation.x=g.kR.rotation.x=0;g.tor.rotation.y=0;g.tor.position.y=0;g.hd.rotation.x=0;
  g.aL.rotation.x=br;g.aR.rotation.x=-br;g.eL.rotation.x=g.eR.rotation.x=-.15;g.aL.rotation.z=.06;g.aR.rotation.z=-.06;
  if(mode=='walk'){g.lL.rotation.x=s;g.lR.rotation.x=-s;g.kL.rotation.x=Math.max(0,-c)*.9;g.kR.rotation.x=Math.max(0,c)*.9;g.aL.rotation.x=-s*.9;g.aR.rotation.x=s*.9;g.eL.rotation.x=-.3-Math.max(0,s)*.5;g.eR.rotation.x=-.3-Math.max(0,-s)*.5;g.tor.rotation.y=s*.18;g.tor.position.y=Math.abs(s)*.04}
@@ -662,7 +665,21 @@ let MAILT=null;
 function mailTex(){if(MAILT)return MAILT;const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#7c828c';g.fillRect(0,0,64,64);
  for(let y=0;y<4;y++)for(let x=0;x<4;x++)[0,-64].forEach(ox=>{const cx=x*16+8+(y%2?8:0)+ox,cy=y*16+8;g.beginPath();g.arc(cx,cy,6.2,0,6.3);g.strokeStyle='#3a3f48';g.lineWidth=3.2;g.stroke();g.beginPath();g.arc(cx,cy,6.2,0,6.3);g.strokeStyle='#eef2f8';g.lineWidth=1.6;g.stroke()});
  MAILT=new THREE.CanvasTexture(c);MAILT.wrapS=MAILT.wrapT=THREE.RepeatWrapping;MAILT.repeat.set(3,1.6);return MAILT}
-function AMt(mat){if(AMX[mat])return AMX[mat];const k=AMC[mat]||AMC.iron,lea=mat=='leather',mk=(c,m,r,e,dbl)=>{const x=new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});if(e){x.emissive=new THREE.Color(e);x.emissiveIntensity=.6}if(dbl)x.side=THREE.DoubleSide;return x};
+
+// ===== v14: ACABAMENTO: reflexo de ambiente e relevo (riscos no metal, grão no couro) =====
+let ENVT=null,ENVTRY=0,BMPM=null,BMPL=null;
+function envMap(){if(ENVT||ENVTRY)return ENVT;ENVTRY=1;try{const c=document.createElement('canvas');c.width=256;c.height=128;const g=c.getContext('2d'),gr=g.createLinearGradient(0,0,0,128);
+ gr.addColorStop(0,'#3f78c4');gr.addColorStop(.42,'#cfe6ff');gr.addColorStop(.5,'#fff4dc');gr.addColorStop(.52,'#6a5a40');gr.addColorStop(1,'#2a2218');g.fillStyle=gr;g.fillRect(0,0,256,128);
+ const sg=g.createRadialGradient(150,34,0,150,34,26);sg.addColorStop(0,'#ffffff');sg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sg;g.fillRect(100,0,100,80);
+ const t=new THREE.CanvasTexture(c);t.mapping=THREE.EquirectangularReflectionMapping;t.encoding=THREE.sRGBEncoding;ENVT=new THREE.PMREMGenerator(R).fromEquirectangular(t).texture}catch(e){ENVT=null}return ENVT}
+function metalBump(){if(BMPM)return BMPM;const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='#808080';g.fillRect(0,0,128,128);
+ for(let i=0;i<520;i++){const v=105+Math.random()*60|0;g.strokeStyle='rgb('+v+','+v+','+v+')';g.lineWidth=.4+Math.random()*1.1;const x=Math.random()*128,y=Math.random()*128,l=6+Math.random()*30;g.beginPath();g.moveTo(x,y);g.lineTo(x+l,y+(Math.random()-.5)*3);g.stroke()}
+ for(let i=0;i<14;i++){g.fillStyle='rgba(40,40,40,.5)';g.beginPath();g.arc(Math.random()*128,Math.random()*128,1+Math.random()*2,0,6.3);g.fill()}
+ BMPM=new THREE.CanvasTexture(c);BMPM.wrapS=BMPM.wrapT=THREE.RepeatWrapping;return BMPM}
+function grainBump(){if(BMPL)return BMPL;const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#808080';g.fillRect(0,0,64,64);
+ for(let i=0;i<700;i++){const v=90+Math.random()*80|0;g.fillStyle='rgb('+v+','+v+','+v+')';g.fillRect(Math.random()*64,Math.random()*64,1+Math.random()*2,1+Math.random()*2)}
+ BMPL=new THREE.CanvasTexture(c);BMPL.wrapS=BMPL.wrapT=THREE.RepeatWrapping;return BMPL}
+function AMt(mat){if(AMX[mat])return AMX[mat];const k=AMC[mat]||AMC.iron,lea=mat=='leather',mk=(c,m,r,e,dbl)=>{const x=new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});if(e){x.emissive=new THREE.Color(e);x.emissiveIntensity=.6}if(dbl)x.side=THREE.DoubleSide;if(m>0){x.envMap=envMap();x.envMapIntensity=.85;x.bumpMap=metalBump();x.bumpScale=1.1}else{x.bumpMap=grainBump();x.bumpScale=.5}return x};
  return AMX[mat]={m:mk(k[0],lea?0:.55,lea?.85:.38,k[3]),md:mk(k[0],lea?0:.55,lea?.85:.38,k[3],1),t:mk(k[1],lea?0:.7,.3,k[3]),d:mk(k[2],.45,.55),dd:mk(k[2],.45,.55,0,1),
   mail:new THREE.MeshStandardMaterial({color:k[0],map:mailTex(),metalness:.45,roughness:.55,side:THREE.DoubleSide}),L:mk(0x6b4a2a,0,.85),
   gem:new THREE.MeshStandardMaterial({color:0x5fb4ff,emissive:0x2a7ae0,emissiveIntensity:.9,metalness:.3,roughness:.2}),blk:new THREE.MeshBasicMaterial({color:0x101216})}}
@@ -743,6 +760,8 @@ const ARMN={
    A(a,new CG(.095,.082,.32,12),NU,0,-.17,0);
    const ra=A(a,new CG(.104,.09,.2,12,1,true,sd*Math.PI/2-1,2),K.md,0,-.15,0);ra.scale.z=1.02;
    A(a,new TG(.097,.012,5,12),K.t,0,-.26,0).rotation.x=Math.PI/2});
+  if(ti>=2){const cp=new THREE.Group();cp.position.set(0,1.52,-.2);t.add(cp);o.push([t,cp]);R.cape=cp;const cm=new THREE.MeshStandardMaterial({color:ti==3?0x1d3a8a:0x7a1c1c,roughness:.92,side:THREE.DoubleSide});
+   add(new THREE.BoxGeometry(.5,.8,.022),cm,0,-.4,-.02,cp);add(new THREE.BoxGeometry(.54,.05,.04),K.t,0,-.02,0,cp);add(new THREE.BoxGeometry(.5,.03,.026),K.t,0,-.79,-.02,cp);[-1,1].forEach(sx=>add(new THREE.SphereGeometry(.03,8,6),K.t,sx*.22,-.04,.0,cp))}
   [R.eL,R.eR].forEach(e=>{const sd=e.parent&&e.parent.position.x<0?-1:1;
    A(e,new SG(.083,12,9),K.m,0,0,0).scale.set(1,1,1.05);A(e,new THREE.ConeGeometry(.03,.09,6),K.t,0,0,-.09).rotation.x=-Math.PI/2;
    A(e,new CG(.074,.06,.3,10),NU,0,-.16,0);
@@ -790,6 +809,9 @@ function heroBody(g,sh,pants,sk,F){if(!g||g.hero||!g.tor||!g.aL)return g;g.hero=
  [g.lL,g.lR].forEach(l=>S(add(new THREE.SphereGeometry(F?.125:.14,12,9),pm,0,-.17,.01,l),1,1.75,1.05));
  [g.kL,g.kR].forEach(k=>S(add(new THREE.SphereGeometry(F?.09:.1,10,8),pm,0,-.13,-.03,k),1,1.6,1.1));
  if(!F){[-1,1].forEach(s=>{S(add(new THREE.SphereGeometry(.13,12,9),tm,s*.1,1.38,.1,g.tor),1,.8,.62);S(add(new THREE.SphereGeometry(.08,10,8),tm,s*.15,1.54,-.02,g.tor),1.3,.7,1)});S(add(new THREE.SphereGeometry(.3,14,10),tm,0,1.0,0,g.tor),1,.55,.55)}
+ const hd=g.hd;if(hd){S(add(new THREE.SphereGeometry(.12,14,10),skm,0,F?-.125:-.13,F?.06:.07,hd),F?.95:1.15,.8,.95);[-1,1].forEach(sx=>{S(add(new THREE.SphereGeometry(.04,8,6),skm,sx*.1,-.02,.15,hd),1,.9,.8);add(new THREE.BoxGeometry(.03,.07,.03),skm,sx*.05,-.2,.08,hd)});
+  S(add(new THREE.BoxGeometry(.17,.03,.04),skm,0,.068,.172,hd),1,1,1)}
+ [g.eL,g.eR].forEach(e=>{[-.035,-.012,.012,.035].forEach(x=>add(new THREE.BoxGeometry(.02,.07,.024),skm,x,-.405,.04,e));add(new THREE.BoxGeometry(.022,.06,.026),skm,e===g.eL?-.07:.07,-.36,.02,e).rotation.z=e===g.eL?.5:-.5});
  return g}
 function dressRig(R,E){if(!R||!R.tor||!R.aL)return;R.gr=R.gr||{};let hid=null;
  for(const sl of EQS){const v=E&&E[sl],id=v?(v.id||v):null,c=R.gr[sl];if(sl=='head')hid=id;if(c&&c.id===id)continue;if(c)c.o.forEach(([p,m])=>p.remove(m));const o=[];if(id&&ITEMS[id])ARM[sl](R,id,o);R.gr[sl]={id,o}}
