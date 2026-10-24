@@ -1,6 +1,6 @@
 // Service worker do Eldoria: guarda o jogo no aparelho para abrir rápido e funcionar offline.
 // Ao publicar uma versão nova do jogo, troque o número em VERSAO para forçar a atualização.
-const VERSAO='eldoria-v10';
+const VERSAO='eldoria-v11';
 const LOCAL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'];
 const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'];
 const HOSTS=['cdnjs.cloudflare.com','cdn.jsdelivr.net','unpkg.com'];

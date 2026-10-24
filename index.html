@@ -269,7 +269,14 @@ function humanV1(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86){const g=new THREE.Group(
  [g.aL,g.eL]=arm(-.37);[g.aR,g.eR]=arm(.37);
  const leg=x=>{const h=new THREE.Group();h.position.set(x,.88,0);g.add(h);add(new THREE.CylinderGeometry(.115,.09,.44,10),pm,0,-.22,0,h);const k=new THREE.Group();k.position.y=-.44;h.add(k);add(new THREE.SphereGeometry(.09,10,8),pm,0,0,0,k);add(new THREE.CylinderGeometry(.085,.065,.4,10),pm,0,-.2,0,k);add(new THREE.BoxGeometry(.15,.1,.3),dk,0,-.4,.07,k);return[h,k]};
  [g.lL,g.kL]=leg(-.14);[g.lR,g.kR]=leg(.14);return g}
-function pose(g,t,mode){poseCore(g,t,mode);g.tor.rotation.y*=-1;g.aL.rotation.z*=-1;g.aR.rotation.z*=-1;g.aL.rotation.z+=.2;g.aR.rotation.z-=.2;shPose(g,t,mode)}
+function pose(g,t,mode){poseCore(g,t,mode);g.tor.rotation.y*=-1;g.aL.rotation.z*=-1;g.aR.rotation.z*=-1;g.aL.rotation.z+=.2;g.aR.rotation.z-=.2;shPose(g,t,mode);blockPose(g,mode)}
+// defesa: ao ser atacado o braço do escudo sobe à frente (com escudo, a placa protege; sem escudo, o antebraço cobre o corpo)
+function blockPose(g,mode){if(!g.blkT||!g.aL||!g.eL)return;const now=performance.now();if(now>=g.blkT)return;
+ if(['','walk','fight','guard','slash','punch'].indexOf(mode||'')<0)return;
+ const k=Math.max(0,Math.min(1,(now-g.blkS)/120,(g.blkT-now)/150)),sh=!!(g.shd&&g.shG&&g.shG.parent),
+  tx=sh?-1.05:-1.0,te=sh?-1.35:-1.75,tz=sh?.05:-.2;
+ g.aL.rotation.x+=(tx-g.aL.rotation.x)*k;g.eL.rotation.x+=(te-g.eL.rotation.x)*k;g.aL.rotation.z+=(tz-g.aL.rotation.z)*k;
+ if(sh)g.shG.rotation.x=-(g.aL.rotation.x+g.eL.rotation.x)}
 // v17: com escudo, o braço esquerdo fica dobrado à frente segurando-o (a placa fica sempre em pé, presa ao antebraço)
 function shPose(g,t,mode){const sg=g.shd&&g.shG;if(!sg||!sg.parent||!g.eL)return;
  if(['','walk','fight','guard','slash','punch'].indexOf(mode||'')>=0){const at=mode=='fight'||mode=='guard'||mode=='slash'||mode=='punch',w=mode=='walk'?Math.sin(t*9)*.06:0;
@@ -448,7 +455,20 @@ function mobReward(o,mine,bones){addXp('combate',o.kx||14);say(mine?'Você derro
  if(mine){(o.drops||[]).forEach(([id,p,n])=>{if(Math.random()<p*(pet&&pet.id=='raposa'?1.5:1)&&!full(id)){give(id,n||1);say('Drop: '+ITEMS[id].n+(n>1?' x'+n:'')+'.','y')}});
   if(o.gold){pay(o.gold);say('Você ganha '+o.gold+' moedas.','g')}}
  if(o.nm=='lobo'&&q.lobos==1)q.kills++;q.k[o.nm]=(q.k[o.nm]||0)+1;render()}
-function mobStrike(w){const n=wolfSwing(w);me.hp-=n;hit(w);splat(me,n);say(n?'O '+w.nm+' te acerta! (-'+n+')':'O '+w.nm+' erra o golpe.',n?'r':'');if(me.hp>0&&!me.act&&!me.target)startAct(w);hud();if(me.hp<=0)morrer()}
+// ===== animação de ataque dos inimigos (humanoides: golpe por cima do ombro; quadrúpedes: patada/mordida) =====
+function mobAtk(w,dt){const g=w.g;if(!g)return;
+ if(!(w.at>0)){if(w.atd){w.atd=0;if(g.tor)g.tor.rotation.y=0;if(g.hd)g.hd.rotation.x=0}return}
+ w.at=Math.max(0,w.at-dt);w.atd=1;const p=1-w.at/.6;
+ if(g.tor&&g.eR&&g.eL){
+  const wind=p<.45,hitP=p<.62,e1=Math.sin(Math.min(1,p/.45)*Math.PI/2);
+  const a=wind?-2.4*e1:hitP?-2.4+2.2*((p-.45)/.17):-.2+.2*((p-.62)/.38);
+  const ty=wind?.4*e1:hitP?.4-.8*((p-.45)/.17):-.4*(1-(p-.62)/.38);
+  g.aR.rotation.x=a;g.eR.rotation.x=wind?-1.1*e1-.2:hitP?-1.3+1.1*((p-.45)/.17):-.2-.2*((p-.62)/.38);
+  g.aL.rotation.x=-.5*Math.sin(p*Math.PI);g.eL.rotation.x=-.5-.4*Math.sin(p*Math.PI);
+  g.tor.rotation.y=ty;if(g.hd)g.hd.rotation.x=hitP&&!wind?.18:0}
+ else{const k=Math.sin(p*Math.PI),k2=Math.sin(Math.max(0,p-.25)/.75*Math.PI);
+  if(g.aR)g.aR.rotation.x=-1.3*k;if(g.aL)g.aL.rotation.x=-1.3*k2}}
+function mobStrike(w){pg.blkS=performance.now();pg.blkT=pg.blkS+600;const n=wolfSwing(w);me.hp-=n;hit(w);splat(me,n);say(n?'O '+w.nm+' te acerta! (-'+n+')':'O '+w.nm+' erra o golpe.',n?'r':'');if(me.hp>0&&!me.act&&!me.target)startAct(w);hud();if(me.hp<=0)morrer()}
 function mkEnemy(nm,x,z,o2,build){if(x<450)[x,z]=safeSpot(x,z);const g=build(),l=label(nm[0].toUpperCase()+nm.slice(1)+' - Nível '+Math.max(1,Math.round(((o2.atk||0)+(o2.str||0)+(o2.def||0))/6+(o2.mhp||0)/6)),'#ff8080',.7);l.position.y=o2.ly||2.3;g.add(l);
  const bc=document.createElement('canvas');bc.width=128;bc.height=24;const bs=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(bc),depthTest:false,transparent:true,fog:false}));bs.scale.set(1.8,.34,1);bs.position.y=(o2.ly||2.3)+.55;bs.visible=false;g.add(bs);
  g.position.set(x,H(x,z),z);S.add(g);
@@ -1736,8 +1756,8 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   const tg=mobTarget(w),dx=tg.x-w.x,dz=tg.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
   if(mv){const l=Math.hypot(gx,gz);w.x+=gx/l*mv*dt;w.z+=gz/l*mv*dt;if(H(w.x,w.z)<-.2){w.x-=gx/l*mv*dt;w.z-=gz/l*mv*dt}face(w.g,gx,gz,dt)}else if(d<=14)face(w.g,dx,dz,dt);
-  w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;if(tg.r){const c=MP.conns[tg.r];try{if(c&&c.open)c.send({t:'a',i:w.i})}catch(e){}}else mobStrike(w)}
-  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));const s=Math.sin(t*10)*.6*(mv?1:0);w.lg.forEach((l,i)=>l.rotation.x=(i%3?-s:s))}
+  w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;w.at=.6;if(tg.r){const c=MP.conns[tg.r];try{if(c&&c.open)c.send({t:'a',i:w.i})}catch(e){}}else mobStrike(w)}
+  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));const s=Math.sin(t*10)*.6*(mv?1:0);w.lg.forEach((l,i)=>l.rotation.x=(i%3?-s:s));mobAtk(w,dt)}
  for(let i=SP.length-1;i>=0;i--){const p=SP[i];p.t-=dt;p.s.position.y=p.y+(1-p.t)*.6;p.s.material.opacity=Math.min(1,p.t*2);if(p.t<=0){S.remove(p.s);SP.splice(i,1)}}
  for(const k in NPC){const n=NPC[k],dx=me.x-n.x,dz=me.z-n.z;if(dx*dx+dz*dz<120)face(n.g,dx,dz,dt);pose(n.g,t+k.length*2,'')}
  for(let i=PR.length-1;i>=0;i--){const p=PR[i];p.t+=dt/.25;const k=Math.min(1,p.t);p.m.position.set(p.x0+(p.o.x-p.x0)*k,H(p.x0,p.z0)+1.4+(H(p.o.x,p.o.z)+1-H(p.x0,p.z0)-1.4)*k,p.z0+(p.o.z-p.z0)*k);if(p.t>=1){S.remove(p.m);PR.splice(i,1)}}
@@ -1887,7 +1907,7 @@ function mpData(m,c){if(!m||typeof m!='object')return;
  else if(m.t=='p'){const r=MP.pl[m.id];if(r){r.tx=+m.x||0;r.tz=+m.z||0;r.in=m.in?1:0;if(!r.seen){r.seen=1;r.x=r.tx;r.z=r.tz}}if(MP.host)mpSend(m,c.peer)}
  else if(m.t=='m'){if(!MP.host)mobApply(m)}
  else if(m.t=='k'){if(!MP.host){const w=W[m.i];if(w&&w.hx<450)killEnemy(w,String(m.by))}}
- else if(m.t=='a'){if(!MP.host&&!me.in&&!me.dun&&!me.jail){const w=W[m.i];if(w&&!(w.dead>0)&&Math.hypot(me.x-w.x,me.z-w.z)<6){w.ln=.3;mobStrike(w)}}}
+ else if(m.t=='a'){if(!MP.host&&!me.in&&!me.dun&&!me.jail){const w=W[m.i];if(w&&!(w.dead>0)&&Math.hypot(me.x-w.x,me.z-w.z)<6){w.ln=.3;w.at=.6;mobStrike(w)}}}
  else if(m.t=='d'){if(MP.host){const w=W[m.i],d=Math.max(0,Math.min(60,+m.d||0));if(w&&w.hx<450&&!(w.dead>0)&&d>0){w.hp-=d;hit(w);splat(w,d);if(w.hp<=0)killEnemy(w,c.peer)}}}
  else if(m.t=='c'){const r=MP.pl[m.id],t=chClean(m.txt),now=performance.now();if(r&&t&&now-(r.ct||0)>400){r.ct=now;chShow(r.name,t,r.g,0)}if(MP.host)mpSend({t:'c',id:m.id,txt:t},c.peer)}
  else if(m.t=='e'){const r=MP.pl[m.id];if(r){r.eq=sanEq(m.eq);dressRig(r.g,r.eq)}if(MP.host)mpSend(m,c.peer)}
@@ -1907,7 +1927,7 @@ function mobGuest(w,dt){if(!(MP.peer&&MP.id&&!MP.host&&w.hx<450&&w.i!=null))retu
  if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0)return 1;let mv=0;
  if(w.tx!=null){const dx=w.tx-w.x,dz=w.tz-w.z,d=Math.hypot(dx,dz);if(d>30){w.x=w.tx;w.z=w.tz}else{const k=Math.min(1,dt*8);w.x+=dx*k;w.z+=dz*k}if(d>.12){mv=1;face(w.g,dx,dz,dt)}}
  w.ln=Math.max(0,(w.ln||0)-dt);const l2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+l2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+l2*Math.cos(w.g.rotation.y));
- const sv=Math.sin(performance.now()/100)*.6*mv;w.lg.forEach((l,i)=>l.rotation.x=(i%3?-sv:sv));return 1}
+ const sv=Math.sin(performance.now()/100)*.6*mv;w.lg.forEach((l,i)=>l.rotation.x=(i%3?-sv:sv));mobAtk(w,dt);return 1}
 function mobSnap(){const a=[];for(const w of W){if(w.i==null||w.hx>=450)continue;a.push([w.i,Math.round(w.x*10)/10,Math.round(w.z*10)/10,w.hp,w.dead>0?1:0])}return{t:'m',a}}
 function mobApply(m){if(!Array.isArray(m.a))return;for(const e of m.a){const w=W[e[0]];if(!w||w.hx>=450)continue;const hp=+e[3]||0;
  if(hp!==w.hp){const dec=hp<w.hp;w.hp=hp;if(dec||hp<w.mhp)hit(w)}
