@@ -673,16 +673,16 @@ const GRB={
 var EQS=['head','body','legs','feet','hands','shield'],LASTEQ='';
 const eqIds=()=>{const o={};EQS.forEach(k=>{if(eq[k])o[k]=eq[k].id});return o};
 const sanEq=o=>{const r={};if(o&&typeof o=='object')EQS.forEach(k=>{const id=o[k];if(typeof id=='string'&&ITEMS[id]&&ITEMS[id].slot==k)r[k]=id});return r};
-const TIK={bronze:0,iron:1,steel:2,mithril:3},AMC={bronze:[0xb8733a,0xe2b04e,0x7a4a24,0],iron:[0xa6aeb8,0x6a727c,0x555d66,0],steel:[0xd3dae3,0xf0c860,0x8a94a0,0],mithril:[0x4a6fd0,0x9fd4ff,0x2a4aa8,0x143a8a],leather:[0x6b4a2a,0x9a7a4a,0x3a2414,0]},AMX={};
+const TIK={bronze:0,iron:1,steel:2,mithril:3},AMC={bronze:[0x9c5826,0xd9a441,0x6a3c1a,0],iron:[0x8a929c,0x5a626c,0x464d56,0],steel:[0xbcc5d0,0xe4b84c,0x7a848f,0],mithril:[0x4a6fd0,0x9fd4ff,0x2a4aa8,0x143a8a],leather:[0x6b4a2a,0x9a7a4a,0x3a2414,0]},AMX={};
 let MAILT=null;
-function mailTex(){if(MAILT)return MAILT;const c=document.createElement('canvas');c.width=c.height=32;const g=c.getContext('2d');g.fillStyle='#6a707a';g.fillRect(0,0,32,32);
- for(let y=0;y<4;y++)for(let x=0;x<4;x++)[0,-32].forEach(ox=>{const cx=x*8+4+(y%2?4:0)+ox,cy=y*8+4;g.beginPath();g.arc(cx,cy,2.6,0,6.3);g.strokeStyle='#4a5058';g.lineWidth=1.5;g.stroke();g.beginPath();g.arc(cx,cy,2.6,0,6.3);g.strokeStyle='#9aa2ac';g.lineWidth=.6;g.stroke()});
+function mailTex(){if(MAILT)return MAILT;const c=document.createElement('canvas');c.width=c.height=32;const g=c.getContext('2d');g.fillStyle='#a2a8b2';g.fillRect(0,0,32,32);
+ for(let y=0;y<4;y++)for(let x=0;x<4;x++)[0,-32].forEach(ox=>{const cx=x*8+4+(y%2?4:0)+ox,cy=y*8+4;g.beginPath();g.arc(cx,cy,2.6,0,6.3);g.strokeStyle='#767c86';g.lineWidth=1.5;g.stroke();g.beginPath();g.arc(cx,cy,2.6,0,6.3);g.strokeStyle='#e4e8ee';g.lineWidth=.6;g.stroke()});
  MAILT=new THREE.CanvasTexture(c);MAILT.wrapS=MAILT.wrapT=THREE.RepeatWrapping;MAILT.repeat.set(5,3);if(THREE.sRGBEncoding)MAILT.encoding=THREE.sRGBEncoding;return MAILT}
 
 // ===== v14: ACABAMENTO: reflexo de ambiente e relevo (riscos no metal, grão no couro) =====
 let ENVT=null,ENVTRY=0,BMPM=null,BMPL=null;
 function envMap(){if(ENVT||ENVTRY)return ENVT;ENVTRY=1;try{const c=document.createElement('canvas');c.width=256;c.height=128;const g=c.getContext('2d'),gr=g.createLinearGradient(0,0,0,128);
- gr.addColorStop(0,'#3f78c4');gr.addColorStop(.42,'#cfe6ff');gr.addColorStop(.5,'#fff4dc');gr.addColorStop(.52,'#6a5a40');gr.addColorStop(1,'#2a2218');g.fillStyle=gr;g.fillRect(0,0,256,128);
+ gr.addColorStop(0,'#2c5a96');gr.addColorStop(.42,'#8fa9c8');gr.addColorStop(.5,'#e8e0cc');gr.addColorStop(.52,'#4a3e2c');gr.addColorStop(1,'#1c1610');g.fillStyle=gr;g.fillRect(0,0,256,128);
  const sg=g.createRadialGradient(150,34,0,150,34,26);sg.addColorStop(0,'#ffffff');sg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sg;g.fillRect(100,0,100,80);
  const t=new THREE.CanvasTexture(c);t.mapping=THREE.EquirectangularReflectionMapping;t.encoding=THREE.sRGBEncoding;ENVT=new THREE.PMREMGenerator(R).fromEquirectangular(t).texture}catch(e){ENVT=null}return ENVT}
 function metalBump(){if(BMPM)return BMPM;const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='#808080';g.fillRect(0,0,128,128);
@@ -691,9 +691,9 @@ function metalBump(){if(BMPM)return BMPM;const c=document.createElement('canvas'
 function grainBump(){if(BMPL)return BMPL;const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#808080';g.fillRect(0,0,64,64);
  for(let i=0;i<700;i++){const v=90+Math.random()*80|0;g.fillStyle='rgb('+v+','+v+','+v+')';g.fillRect(Math.random()*64,Math.random()*64,1+Math.random()*2,1+Math.random()*2)}
  BMPL=new THREE.CanvasTexture(c);BMPL.wrapS=BMPL.wrapT=THREE.RepeatWrapping;return BMPL}
-function AMt(mat){if(AMX[mat])return AMX[mat];const k=AMC[mat]||AMC.iron,lea=mat=='leather',mk=(c,m,r,e,dbl)=>{const x=new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});if(e){x.emissive=new THREE.Color(e);x.emissiveIntensity=.6}if(dbl)x.side=THREE.DoubleSide;if(m>0){x.envMap=envMap();x.envMapIntensity=.85;x.bumpMap=metalBump();x.bumpScale=.25}else{x.bumpMap=grainBump();x.bumpScale=.5}return x};
+function AMt(mat){if(AMX[mat])return AMX[mat];const k=AMC[mat]||AMC.iron,lea=mat=='leather',mk=(c,m,r,e,dbl)=>{const x=new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});if(e){x.emissive=new THREE.Color(e);x.emissiveIntensity=.6}if(dbl)x.side=THREE.DoubleSide;if(m>0){x.envMap=envMap();x.envMapIntensity=.85}return x};
  return AMX[mat]={m:mk(k[0],lea?0:.55,lea?.85:.38,k[3]),md:mk(k[0],lea?0:.55,lea?.85:.38,k[3],1),t:mk(k[1],lea?0:.7,.3,k[3]),d:mk(k[2],.45,.55),dd:mk(k[2],.45,.55,0,1),
-  mail:new THREE.MeshStandardMaterial({color:k[0],map:mailTex(),metalness:.5,roughness:.5,side:THREE.DoubleSide}),L:mk(0x6b4a2a,0,.85),
+  mail:new THREE.MeshStandardMaterial({color:new THREE.Color(k[0]).multiplyScalar(1.7),map:mailTex(),metalness:.5,roughness:.5,side:THREE.DoubleSide}),L:mk(0x6b4a2a,0,.85),
   gem:new THREE.MeshStandardMaterial({color:0x5fb4ff,emissive:0x2a7ae0,emissiveIntensity:.9,metalness:.3,roughness:.2}),blk:new THREE.MeshBasicMaterial({color:0x101216})}}
 function armCtx(R,id,o){const d=ITEMS[id],me_=!!d.metal,K=AMt(me_?d.mat:'leather'),ti=me_?(TIK[d.mat]||1):0,
  A=(p,g,m,x,y,z)=>{const k=add(g,m,x,y,z,p);o.push([p,k]);return k};return{d,K,ti,M:me_,A,CG:THREE.CylinderGeometry,SG:THREE.SphereGeometry,BG:THREE.BoxGeometry,TG:THREE.TorusGeometry,F:!!R.fem}}
@@ -738,10 +738,10 @@ const ARMN={
   a(new SG(.238,28,16,0,6.3,0,1.6),K.m,0,.05,-.01).scale.set(.97,1,1.08);
   a(new CG(.238,.21,.31,28),K.md,0,-.105,-.01).scale.set(.97,1,1.08);
   a(new CG(.214,.214,.022,28,1,true),K.t,0,-.255,-.01).scale.set(.97,1,1.08);
-  // frente do rosto levemente pontuda (viseira)
-  const fs=a(new SG(.2,22,16),K.m,0,-.06,.12);fs.scale.set(.85,1,.85);
-  // fendas verticais da viseira
-  [-.065,-.032,0,.032,.065].forEach(x=>{const zz=.12+.17*Math.sqrt(Math.max(0,1-(x/.17)*(x/.17)))*.97+.006;a(new BG(.011,.1,.016),K.blk,x,-.015,zz)});
+  // viseira: abertura escura com barras
+  a(new BG(.2,.1,.02),K.blk,0,-.005,.247);
+  [-.075,-.045,-.015,.015,.045,.075].forEach(x=>a(new BG(.011,.11,.026),K.m,x,-.005,.252));
+  a(new BG(.22,.016,.03),K.t,0,.058,.248);a(new BG(.22,.016,.03),K.t,0,-.068,.248);
   // faixa da testa e crista central
   a(new CG(.242,.242,.026,28,1,true),K.t,0,.045,-.01).scale.set(.97,1,1.08);
   a(new BG(.026,.03,.5),K.t,0,.285,-.01);
@@ -767,7 +767,7 @@ const ARMN={
   A(t,new BG(.022,.34,.03),K.t,0,1.27,(F?.185:.2)*Z+.006);
   A(t,new BG(.2,.014,.024),K.t,0,1.43,(F?.15:.17)*Z).rotation.x=-.15;
   // volume do peito (levemente separado em duas placas)
-  [-1,1].forEach(s=>{A(t,new SG(F?.088:.095,18,12),K.m,s*.082,1.34,F?.1:.095).scale.set(1,.82,.55)});
+  [-1,1].forEach(s=>{const pl=A(t,new BG(.12,.2,.022),K.m,s*.072,1.31,(F?.16:.17)*Z+.004);pl.rotation.set(-.12,-s*.32,s*.1)});
   // gorjal
   LT(t,[[.088,1.49],[.086,1.57],[.08,1.64]],K.md,0,0,0,1);
   LT(t,[[.1,1.485],[.098,1.52]],K.t,0,0,0,1);
@@ -828,7 +828,7 @@ const ARMN={
  shield:(R,id,o)=>{const{K,ti,A,BG,SG}=ARMN_ctx(R,id,o),e=R.eL;
   // escudo hexagonal de madeira com moldura de metal e rebites
   const hx=k=>{const sh=new THREE.Shape();[[0,.42],[.27,.3],[.27,-.12],[0,-.44],[-.27,-.12],[-.27,.3]].forEach(([x,y],i)=>i?sh.lineTo(x*k,y*k):sh.moveTo(x*k,y*k));sh.closePath();return sh};
-  const wood=new THREE.MeshStandardMaterial({color:ti>=2?0x9a7440:0x8a6238,roughness:.85,bumpMap:grainBump(),bumpScale:.6});o.push([e,null]);o.pop();
+  const wood=new THREE.MeshStandardMaterial({color:ti>=2?0x7a5530:0x6e4a26,roughness:.85,});o.push([e,null]);o.pop();
   const rim=A(e,new THREE.ExtrudeGeometry(hx(1),{depth:.03,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:1}),K.m,.1,-.14,.04);rim.rotation.y=Math.PI/2;rim.scale.set(.85,.85,1);
   const pn=A(e,new THREE.ExtrudeGeometry(hx(.86),{depth:.03,bevelEnabled:true,bevelThickness:.008,bevelSize:.008,bevelSegments:1}),wood,.122,-.14,.04);pn.rotation.y=Math.PI/2;pn.scale.set(.85,.85,1);
   // tiras de metal em cruz e boss central
@@ -1281,7 +1281,7 @@ function NS(id,nome,f){const k=id.replace(/\d+$/,''),h=(id.length*7+nome.length*
  return Object.assign(b,O[k]||{outfit:f?'dress':'vest'})}
 // ===== v16: PERSONAGENS REALISTAS (proporcao de ~7,4 cabecas, membros continuos e afilados, rosto modelado, tecido com trama) =====
 var CLTX=null;
-function clothBump(){if(CLTX)return CLTX;try{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#808080';x.fillRect(0,0,64,64);
+function clothBump(){return null;if(CLTX)return CLTX;try{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#808080';x.fillRect(0,0,64,64);
  for(let i=0;i<64;i+=2){x.fillStyle='rgba(50,50,50,.4)';x.fillRect(i,0,1,64);x.fillStyle='rgba(210,210,210,.3)';x.fillRect(0,i,64,1)}
  for(let i=0;i<300;i++){const v=95+Math.random()*70|0;x.fillStyle='rgb('+v+','+v+','+v+')';x.fillRect(Math.random()*64,Math.random()*64,1,1)}
  CLTX=new THREE.CanvasTexture(c);CLTX.wrapS=CLTX.wrapT=THREE.RepeatWrapping;CLTX.repeat.set(5,5)}catch(e){CLTX=null}return CLTX}
