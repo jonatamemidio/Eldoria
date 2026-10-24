@@ -269,7 +269,7 @@ function humanV1(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86){const g=new THREE.Group(
  [g.aL,g.eL]=arm(-.37);[g.aR,g.eR]=arm(.37);
  const leg=x=>{const h=new THREE.Group();h.position.set(x,.88,0);g.add(h);add(new THREE.CylinderGeometry(.115,.09,.44,10),pm,0,-.22,0,h);const k=new THREE.Group();k.position.y=-.44;h.add(k);add(new THREE.SphereGeometry(.09,10,8),pm,0,0,0,k);add(new THREE.CylinderGeometry(.085,.065,.4,10),pm,0,-.2,0,k);add(new THREE.BoxGeometry(.15,.1,.3),dk,0,-.4,.07,k);return[h,k]};
  [g.lL,g.kL]=leg(-.14);[g.lR,g.kR]=leg(.14);return g}
-function pose(g,t,mode){poseCore(g,t,mode);g.tor.rotation.y*=-1;g.aL.rotation.z*=-1;g.aR.rotation.z*=-1;shPose(g,t,mode)}
+function pose(g,t,mode){poseCore(g,t,mode);g.tor.rotation.y*=-1;g.aL.rotation.z*=-1;g.aR.rotation.z*=-1;g.aL.rotation.z+=.2;g.aR.rotation.z-=.2;shPose(g,t,mode)}
 // v17: com escudo, o braço esquerdo fica dobrado à frente segurando-o (a placa fica sempre em pé, presa ao antebraço)
 function shPose(g,t,mode){const sg=g.shd&&g.shG;if(!sg||!sg.parent||!g.eL)return;
  if(['','walk','fight','guard','slash','punch'].indexOf(mode||'')>=0){const at=mode=='fight'||mode=='guard'||mode=='slash'||mode=='punch',w=mode=='walk'?Math.sin(t*9)*.06:0;
@@ -820,7 +820,7 @@ const ARMN={
   A(t,new BG(.022,.34,.03),K.t,0,1.27,(F?.185:.2)*Z+.006);
   A(t,new BG(.2,.014,.024),K.t,0,1.43,(F?.15:.17)*Z).rotation.x=-.15;
   // volume do peito (levemente separado em duas placas)
-  [-1,1].forEach(s=>{const pl=A(t,new BG(.12,.2,.022),K.m,s*.072,1.31,(F?.16:.17)*Z+.004);pl.rotation.set(-.12,-s*.32,s*.1)});
+  if(F)[-1,1].forEach(s=>{const pl=A(t,new BG(.12,.2,.022),K.m,s*.072,1.31,(F?.16:.17)*Z+.004);pl.rotation.set(-.12,-s*.32,s*.1)});
   // gorjal
   LT(t,[[.088,1.49],[.086,1.57],[.08,1.64]],K.md,0,0,0,1);
   LT(t,[[.1,1.485],[.098,1.52]],K.t,0,0,0,1);
@@ -1368,7 +1368,6 @@ function human(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86,o){
 tgb('body',LT(F?[[.17,.98],[.152,1.04],[.13,1.12],[.128,1.16],[.142,1.25],[.154,1.33],[.154,1.4],[.134,1.46],[.1,1.5],[.066,1.54],[.054,1.58]]
    :[[.176,.98],[.16,1.04],[.15,1.1],[.15,1.15],[.158,1.22],[.172,1.3],[.183,1.37],[.182,1.42],[.162,1.47],[.118,1.51],[.074,1.55],[.06,1.58]],24,bm,tor,0,0,0,ZT));
  if(F){[-1,1].forEach(s=>tgb('body',S(add(new TH.SphereGeometry(.076,16,12),bm,s*.068,1.33,.092,tor),1,1,.95)))}
- else{[-1,1].forEach(s=>tgb('body',S(add(new TH.SphereGeometry(.088,16,12),bm,s*.076,1.345,.082,tor),1,.78,.56)))}
  [-1,1].forEach(s=>tgb('body',S(add(new TH.SphereGeometry(.07,12,10),bm,s*.1,1.5,-.015,tor),1.7,.55,1)));
  const wy=.99,belt=w=>{LT([[w,wy-.025],[w+.004,wy-.025],[w+.004,wy+.025],[w,wy+.025]],22,lea,tor,0,0,0,ZT+.02);add(new TH.BoxGeometry(.05,.045,.015),gold,0,wy,(w+.004)*(ZT+.02)+.004,tor)};
  const dagger=(x,r)=>{const d=new G();d.position.set(x,wy-.03,.04);d.rotation.z=r;tor.add(d);add(new TH.BoxGeometry(.035,.2,.025),lea,0,-.1,0,d);add(new TH.CylinderGeometry(.013,.013,.07,8),lea,0,.04,0,d);add(new TH.BoxGeometry(.08,.014,.026),gold,0,0,0,d)};
@@ -1417,7 +1416,7 @@ tgb('body',LT(F?[[.17,.98],[.152,1.04],[.13,1.12],[.128,1.16],[.142,1.25],[.154,
   const br=S(add(new TH.SphereGeometry(.03,10,8),hm,X,.088,.17,hd),1.55,.3,.6);br.rotation.z=-s*.12;
   if(F)S(add(new TH.SphereGeometry(.03,10,6),M(0x14100e,.4),X,.056,.17,hd),1.1,.16,.4);
   S(add(new TH.SphereGeometry(.036,10,8),skin,s*.168,-.0,-.005,hd),.36,1.05,.7);
-  S(add(new TH.SphereGeometry(.045,12,10),skin,s*.1,-.055,.13,hd),1,.8,.8)});
+  });
  S(add(new TH.SphereGeometry(.02,10,8),skin,0,-.012,.19,hd),.8,2,.9);
  S(add(new TH.SphereGeometry(.03,12,10),skin,0,-.05,.2,hd),F?.85:1,.85,.9);
  [-1,1].forEach(s=>S(add(new TH.SphereGeometry(.016,8,6),skin,s*.026,-.048,.188,hd),1,.8,.9));
@@ -1463,7 +1462,7 @@ tgb('body',LT(F?[[.17,.98],[.152,1.04],[.13,1.12],[.128,1.16],[.142,1.25],[.154,
   tgb('shin',LT([[.032*q,-.4],[.038*q,-.34],[.048*q,-.22],[.056*q,-.12],[.054*q,-.04],[.05*q,.01]],20,pm,kk,0,0,-.003*q));
   tgb('feet',LT([[.044*q,-.34],[.052*q,-.27],[.058*q,-.2],[.06*q,-.14],[.064*q,-.135]],20,bt,kk));
   tgb('feet',S(add(new TH.SphereGeometry(.05*q,12,10),bt,0,-.405,.05,kk),1,.72,2.3));tgb('feet',S(add(new TH.SphereGeometry(.046*q,12,10),bt,0,-.395,.14,kk),1,.62,1.1));
-  tgb('feet',add(new TH.BoxGeometry(.1*q,.02,.27),rg,0,-.438,.06,kk));tgb('feet',add(new TH.BoxGeometry(.075*q,.03,.06),rg,0,-.43,-.03,kk));return[h,kk]};
+  return[h,kk]};
  [g.lL,g.kL]=leg(LX);[g.lR,g.kR]=leg(-LX);
  return g}
 function heroBody(g){if(g)g.hero=1;return g}
