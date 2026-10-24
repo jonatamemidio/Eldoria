@@ -256,7 +256,8 @@ function humanV1(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86){const g=new THREE.Group(
  [g.aL,g.eL]=arm(-.37);[g.aR,g.eR]=arm(.37);
  const leg=x=>{const h=new THREE.Group();h.position.set(x,.88,0);g.add(h);add(new THREE.CylinderGeometry(.115,.09,.44,10),pm,0,-.22,0,h);const k=new THREE.Group();k.position.y=-.44;h.add(k);add(new THREE.SphereGeometry(.09,10,8),pm,0,0,0,k);add(new THREE.CylinderGeometry(.085,.065,.4,10),pm,0,-.2,0,k);add(new THREE.BoxGeometry(.15,.1,.3),dk,0,-.4,.07,k);return[h,k]};
  [g.lL,g.kL]=leg(-.14);[g.lR,g.kR]=leg(.14);return g}
-function pose(g,t,mode){const w=t*9,s=Math.sin(w)*.75,c=Math.cos(w),br=Math.sin(t*2)*.02;
+function pose(g,t,mode){poseCore(g,t,mode);g.tor.rotation.y*=-1;g.aL.rotation.z*=-1;g.aR.rotation.z*=-1}
+function poseCore(g,t,mode){const w=t*9,s=Math.sin(w)*.75,c=Math.cos(w),br=Math.sin(t*2)*.02;
  g.lL.rotation.x=g.lR.rotation.x=g.kL.rotation.x=g.kR.rotation.x=0;g.tor.rotation.y=0;g.tor.position.y=0;g.hd.rotation.x=0;
  g.aL.rotation.x=br;g.aR.rotation.x=-br;g.eL.rotation.x=g.eR.rotation.x=-.15;g.aL.rotation.z=.06;g.aR.rotation.z=-.06;
  if(mode=='walk'){g.lL.rotation.x=s;g.lR.rotation.x=-s;g.kL.rotation.x=Math.max(0,-c)*.9;g.kR.rotation.x=Math.max(0,c)*.9;g.aL.rotation.x=-s*.9;g.aR.rotation.x=s*.9;g.eL.rotation.x=-.3-Math.max(0,s)*.5;g.eR.rotation.x=-.3-Math.max(0,-s)*.5;g.tor.rotation.y=s*.18;g.tor.position.y=Math.abs(s)*.04}
@@ -691,11 +692,11 @@ const ARM={
  hands:(R,id,o)=>{const{K,ti,A,CG,SG,BG,M:mt}=armCtx(R,id,o);
   [R.eL,R.eR].forEach(e=>{A(e,new CG(.082,.068,.13,10),K.m,0,-.255,0);A(e,new SG(.092,10,8),K.m,0,-.335,0);if(mt){A(e,new BG(.11,.025,.08),K.t,0,-.31,.03);[-.03,0,.03].forEach(x=>A(e,new BG(.022,.07,.022),K.m,x,-.4,.04))}})},
  shield:(R,id,o)=>{const{K,ti,A,CG,SG,BG,TG}=armCtx(R,id,o),e=R.eL;
-  if(ti<=1){const w=ti==1;A(e,new CG(.31,.31,.05,22),w?K.L:K.m,-.14,-.2,.04).rotation.z=Math.PI/2;A(e,new TG(.31,.028,6,22),w?K.d:K.t,-.165,-.2,.04).rotation.y=Math.PI/2;A(e,new SG(.08,10,8),K.t,-.17,-.2,.04);
-   if(w)[0,1.05,2.1].forEach(r=>{const b=A(e,new BG(.02,.58,.05),K.d,-.168,-.2,.04);b.rotation.x=r})}
+  if(ti<=1){const w=ti==1;A(e,new CG(.31,.31,.05,22),w?K.L:K.m,.14,-.2,.04).rotation.z=Math.PI/2;A(e,new TG(.31,.028,6,22),w?K.d:K.t,.165,-.2,.04).rotation.y=Math.PI/2;A(e,new SG(.08,10,8),K.t,.17,-.2,.04);
+   if(w)[0,1.05,2.1].forEach(r=>{const b=A(e,new BG(.02,.58,.05),K.d,.168,-.2,.04);b.rotation.x=r})}
   else{const sh=new THREE.Shape();sh.moveTo(-.27,.34);sh.lineTo(.27,.34);sh.lineTo(.27,.02);sh.quadraticCurveTo(.27,-.3,0,-.5);sh.quadraticCurveTo(-.27,-.3,-.27,.02);sh.lineTo(-.27,.34);
-   const m=A(e,new THREE.ExtrudeGeometry(sh,{depth:.05,bevelEnabled:true,bevelThickness:.015,bevelSize:.015,bevelSegments:1}),K.m,-.1,-.14,.04);m.rotation.y=-Math.PI/2;m.scale.set(.8,.8,1);
-   A(e,new BG(.03,.5,.045),K.t,-.2,-.2,.04);A(e,new BG(.03,.04,.34),K.t,-.2,-.1,.04);if(ti==3)A(e,new THREE.OctahedronGeometry(.045),K.gem,-.215,-.12,.04)}}};
+   const m=A(e,new THREE.ExtrudeGeometry(sh,{depth:.05,bevelEnabled:true,bevelThickness:.015,bevelSize:.015,bevelSegments:1}),K.m,.1,-.14,.04);m.rotation.y=Math.PI/2;m.scale.set(.8,.8,1);
+   A(e,new BG(.03,.5,.045),K.t,.2,-.2,.04);A(e,new BG(.03,.04,.34),K.t,.2,-.1,.04);if(ti==3)A(e,new THREE.OctahedronGeometry(.045),K.gem,.215,-.12,.04)}}};
 function dressRig(R,E){if(!R||!R.tor||!R.aL)return;R.gr=R.gr||{};let hid=null;
  for(const sl of EQS){const v=E&&E[sl],id=v?(v.id||v):null,c=R.gr[sl];if(sl=='head')hid=id;if(c&&c.id===id)continue;if(c)c.o.forEach(([p,m])=>p.remove(m));const o=[];if(id&&ITEMS[id])ARM[sl](R,id,o);R.gr[sl]={id,o}}
  if(R.hairCap)R.hairCap.visible=!hid}
@@ -890,12 +891,12 @@ function humanV2(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86,o){
  const arm=x=>{const s=new THREE.Group();s.position.set(x,SY,0);tor.add(s);add(new THREE.SphereGeometry(F?.075:.088,10,8),sm,0,0,0,s);add(new THREE.CylinderGeometry(AR,AR*.88,.34,10),sm,0,-.17,0,s);
   const e=new THREE.Group();e.position.y=-.34;s.add(e);add(new THREE.SphereGeometry(AR*.85,10,8),skin,0,0,0,e);add(new THREE.CylinderGeometry(AR*.78,AR*.62,.3,10),skin,0,-.15,0,e);
   add(new THREE.SphereGeometry(AR*.85,10,8),skin,0,-.33,0,e);add(new THREE.SphereGeometry(AR*.4,6,5),skin,x>0?-.05:.05,-.31,.05,e);return[s,e]};
- [g.aL,g.eL]=arm(-SX);[g.aR,g.eR]=arm(SX);
+ [g.aL,g.eL]=arm(SX);[g.aR,g.eR]=arm(-SX);
  const LX=F?.15:.14,LR=F?.115:.125,lm=o.skirt?M(sk,.6):pm;
  const leg=x=>{const h=new THREE.Group();h.position.set(x,.88,0);g.add(h);add(new THREE.CylinderGeometry(LR,LR*.78,.44,10),lm,0,-.22,0,h);const k=new THREE.Group();k.position.y=-.44;h.add(k);
   add(new THREE.SphereGeometry(LR*.78,10,8),lm,0,0,0,k);add(new THREE.CylinderGeometry(LR*.78,LR*.6,.4,10),lm,0,-.2,0,k);
   add(new THREE.CylinderGeometry(LR*.72,LR*.68,.18,10),dk,0,-.3,0,k);add(new THREE.BoxGeometry(.17,.11,.32),dk,0,-.395,.07,k);return[h,k]};
- [g.lL,g.kL]=leg(-LX);[g.lR,g.kR]=leg(LX);
+ [g.lL,g.kL]=leg(LX);[g.lR,g.kR]=leg(-LX);
  if(o.skirt)add(new THREE.CylinderGeometry(.22,.37,.5,16),pm,0,.7,0,g);
  return g}
 // ===== v6: NIVEIS DE EQUIPAMENTO, FERRAMENTAS, ARVORES, PESCA, LOJA, ITENS NO CHAO =====
@@ -1202,12 +1203,12 @@ function human(shirt,pants,hair=0x3a2a1a,sk=0xe0ac86,o){
  const arm=x=>{const s=new G();s.position.set(x,SY,0);tor.add(s);add(new THREE.SphereGeometry(F?.075:.088,10,8),sl,0,0,0,s);add(new THREE.CylinderGeometry(AR,AR*.88,.34,10),sl,0,-.17,0,s);
   const e=new G();e.position.y=-.34;s.add(e);add(new THREE.SphereGeometry(AR*.85,10,8),sl,0,0,0,e);add(new THREE.CylinderGeometry(AR*.78,AR*.62,.3,10),o.rolled?skin:sl,0,-.15,0,e);
   add(new THREE.CylinderGeometry(AR*.7,AR*.7,.05,10),cuff,0,-.29,0,e);add(new THREE.SphereGeometry(AR*.85,10,8),skin,0,-.35,0,e);add(new THREE.SphereGeometry(AR*.4,6,5),skin,x>0?-.05:.05,-.33,.05,e);return[s,e]};
- [g.aL,g.eL]=arm(-SX);[g.aR,g.eR]=arm(SX);
+ [g.aL,g.eL]=arm(SX);[g.aR,g.eR]=arm(-SX);
  const LX=F?.15:.14,LR=F?.115:.125,rg=M(0x7a5230,.85);
  const leg=x=>{const h=new G();h.position.set(x,.88,0);g.add(h);add(new THREE.CylinderGeometry(LR,LR*.78,.44,10),pm,0,-.22,0,h);const k=new G();k.position.y=-.44;h.add(k);
   add(new THREE.SphereGeometry(LR*.78,10,8),pm,0,0,0,k);add(new THREE.CylinderGeometry(LR*.78,LR*.6,.4,10),pm,0,-.2,0,k);
   add(new THREE.CylinderGeometry(LR*.8,LR*.74,.24,10),lea,0,-.3,0,k);add(new THREE.CylinderGeometry(LR*.86,LR*.86,.05,10),rg,0,-.2,0,k);add(new THREE.CylinderGeometry(LR*.84,LR*.84,.04,10),rg,0,-.26,0,k);add(new THREE.BoxGeometry(.17,.11,.32),lea,0,-.395,.07,k);return[h,k]};
- [g.lL,g.kL]=leg(-LX);[g.lR,g.kR]=leg(LX);
+ [g.lL,g.kL]=leg(LX);[g.lR,g.kR]=leg(-LX);
  return g}
 // animais em baixa poligonagem facetada (gato, cachorro, raposa), sentam quando parados
 function fquad(kind){
