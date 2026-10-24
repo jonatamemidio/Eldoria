@@ -102,6 +102,11 @@ canvas#c{width:100%;height:100%;display:block;touch-action:none}
 #crf{padding:8px 14px calc(env(safe-area-inset-bottom,0px) + 8px);display:flex;gap:10px;background:#0b0e18;border-top:2px solid #3a3020}
 #crf .mb{margin:0;flex:1;width:auto;font-size:14px;padding:13px 4px}
 @media (orientation:landscape) and (min-width:700px){#crt{flex-direction:row}#crv{flex:0 0 42%}}
+/* ===== v10: chat e balões ===== */
+#chbtn{position:fixed;right:8px;bottom:56px;z-index:40;width:46px;height:46px;border-radius:50%;border:2px solid #b98a35;background:#000b;color:#fff;font-size:22px;cursor:pointer;touch-action:manipulation}
+#cbar{position:fixed;left:6px;right:6px;top:calc(env(safe-area-inset-top,0px) + 38px);z-index:60;display:flex;gap:6px;background:#000c;border:2px solid #b98a35;border-radius:12px;padding:6px}
+#cbar input{flex:1;min-width:0;padding:10px;font:16px system-ui,sans-serif;background:#0b0c12;color:#fff;border:2px solid #6a5226;border-radius:8px;user-select:text;-webkit-user-select:text}
+#cbar button{padding:0 14px;font:600 14px system-ui,sans-serif;background:#6b5a3c;color:#fff;border:2px solid #ffd25a;border-radius:8px;cursor:pointer}
 </style></head><body>
 <div id="app"><div id="view"><canvas id="c"></canvas>
 <div id="vida">❤️ <span id="hp">10/10</span><div id="bar"><i></i></div><div id="pbar"><i></i></div><div>🪙 <span id="gold">0</span> · <span id="hora">--:--</span></div></div><canvas id="mini" width="192" height="192"></canvas></div>
@@ -152,6 +157,7 @@ canvas#c{width:100%;height:100%;display:block;touch-action:none}
 <p class="sm">Vocês se veem e exploram juntos. Cada um mantém o próprio progresso, e monstros e missões continuam individuais.</p></div></div>
 <div id="crt" class="off"><div id="crv"><canvas id="crc"></canvas><div class="tt">Crie seu personagem</div><div class="hint">Arraste para girar</div></div><div id="crw"><div id="cro"></div><div id="crf"><button class="mb sec" onclick="crBack()">Voltar</button><button class="mb main" onclick="crOk()">Começar aventura</button></div></div></div>
 <div id="mpbadge" onclick="mpLeave()"></div>
+<button id="chbtn" class="off" onclick="chOpen()" aria-label="Chat">💬</button><div id="cbar" class="off"><input id="cin" type="text" maxlength="80" placeholder="Digite uma mensagem..." autocomplete="off" enterkeyhint="send"><button onclick="chSend()">Enviar</button><button onclick="chClose()">✕</button></div>
 <div id="menu" hidden></div><div id="gh"></div><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
 const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -920,15 +926,15 @@ const ZZ=label('Zzz...','#9ad8ff',.9);ZZ.position.set(-4,2.2,-3);ZZ.visible=fals
 const hideAll=()=>{OWM.visible=OWF.visible=COP.visible=ZZ.visible=false};
 function sleepPose(g){g.rotation.set(-Math.PI/2,0,0);g.position.set(-4,.74,-1.6);pose(g,0,'')}
 function standPose(g,x,z){g.rotation.set(0,0,0);g.position.set(x,0,z);pose(g,0,'')}
-function enterHouse(o){HS.o=o;HS.mode='';HS.expel=0;HS.police=0;HS.cop=0;hideAll();
+function enterHouse(o){HS.o=o;HS.mode='';HS.expel=0;HS.police=0;HS.cop=0;HS.sp2=0;hideAll();
  if(o.shop){me.shopT=Math.floor(o.id/10);me.shopMode='buy';return}
  if(o.home||o.church||o.bakery)return;
  const g=o.id%2?OWF:OWM;HS.g=g;g.visible=true;
  if(isNight()){HS.mode='sleep';sleepPose(g);ZZ.visible=true;say('A casa est\u00e1 silenciosa... o dono dorme. Cuidado para n\u00e3o acord\u00e1-lo.','y')}
- else{HS.mode='day';standPose(g,1.5,.5);HS.expel=1.8;say('Dono: O que voc\u00ea faz na minha casa? Saia agora!','r')}}
+ else{HS.mode='day';standPose(g,1.5,.5);HS.expel=3.8;say('Dono: '+owPick(OWL1),'r')}}
 function leaveHouse(msg){ownDec(false);me.in=0;me.x=me.door.ex;me.z=me.door.ez;me.target=me.act=null;HS.mode='';HS.o=null;hideAll();shopOff();if(msg)say(msg,'r')}
 function leaveCleanup(){HS.cop=0;if(HS.mode=='awake'&&HS.police>0)say('Voc\u00ea escapou antes da pol\u00edcia chegar!','g');HS.mode='';HS.o=null;hideAll();ownDec(false)}
-function wakeOwner(){HS.mode='awake';HS.police=5;ZZ.visible=false;standPose(HS.g,-2.6,-1.9);say('O dono acordou e gritou por socorro! Fuja antes que a pol\u00edcia chegue!','r')}
+function wakeOwner(){HS.mode='awake';HS.police=5;ZZ.visible=false;standPose(HS.g,-2.6,-1.9);say('O dono acordou e gritou por socorro! Fuja antes que a pol\u00edcia chegue!','r');say('Dono: Ladrão! Socorro! Chamem a guarda!','r')}
 function robChest(){if(HS.mode=='awake')return say('O dono est\u00e1 acordado! Fuja!','r');if(HS.mode!='sleep')return say('N\u00e3o vale a pena roubar agora.');
  const L=lvl(xp.furto),wake=clamp(.35-L*.02,.08,.35),g0=15+Math.floor(Math.random()*(30+L*5));
  opened[me.door.id]=q.day;vis(co,false);gold+=g0;STOLEN.gold+=g0;
@@ -936,8 +942,8 @@ function robChest(){if(HS.mode=='awake')return say('O dono est\u00e1 acordado! F
  hud();addXp('furto',20+g0);say('Voc\u00ea roubou o ba\u00fa: '+g0+' moedas!','g');
  if(Math.random()<wake)wakeOwner();else say('O dono continua dormindo...','y')}
 function houseTick(dt){if(!me.in||me.dun||me.jail||!HS.o||HS.o.shop||HS.o.home||HS.o.church||HS.o.bakery)return;const g=HS.g,m=HS.mode;
- if(m=='day'){HS.expel-=dt;face(g,me.x-(INX+g.position.x),me.z-(INZ+g.position.z),dt);pose(g,me.t,'');if(HS.expel<=0)leaveHouse('O dono expulsou voc\u00ea da casa!')}
- else if(m=='sleep'&&!isNight()){HS.mode='day';standPose(g,1.5,.5);ZZ.visible=false;HS.expel=1.2;say('Amanheceu e o dono acordou! Saia!','r')}
+ if(m=='day'){HS.expel-=dt;face(g,me.x-(INX+g.position.x),me.z-(INZ+g.position.z),dt);pose(g,me.t,'');if(HS.expel<1.9&&!HS.sp2){HS.sp2=1;say('Dono: '+owPick(OWL2),'r')}if(HS.expel<=0)leaveHouse('O dono expulsou voc\u00ea da casa!')}
+ else if(m=='sleep'&&!isNight()){HS.mode='day';standPose(g,1.5,.5);ZZ.visible=false;HS.expel=3;HS.sp2=0;say('Amanheceu e o dono acordou! Saia!','r');say('Dono: Quem é você?! Saia da minha casa!','r')}
  else if(m=='awake'){HS.police-=dt;face(g,me.x-(INX+g.position.x),me.z-(INZ+g.position.z),dt);pose(g,me.t,'');if(HS.police<=2.2){if(!HS.cop){HS.cop=1;COP.visible=true;COP.position.set(0,0,4.2);say('Guarda de '+T[HS.o.ti].n+': Parado! Voc\u00ea est\u00e1 preso por invas\u00e3o e roubo!','r')}const gx=me.x-INX,gz=me.z-INZ,ex=gx-COP.position.x,ez=gz-COP.position.z,ed=Math.hypot(ex,ez);if(ed>1.3){const k=Math.min(ed-1.3,4*dt)/ed;COP.position.x+=ex*k;COP.position.z+=ez*k;pose(COP,me.t,'walk')}else pose(COP,me.t,'');face(COP,ex,ez,dt)}if(HS.police<=0){HS.cop=0;arrest()}}}
 // prisao
 const PRI={x:1200,z:1200,w:3.2,d:2.4},PJ=new THREE.Group();PJ.position.set(PRI.x,0,PRI.z);S.add(PJ);
@@ -947,7 +953,7 @@ const jfl=add(new THREE.BoxGeometry(16,.2,12),M(0x55524a,.9),0,-.1,0,PJ);
 for(let k=-6;k<=6;k++){add(new THREE.CylinderGeometry(.05,.05,3,6),MM(0x555a60,.8,.4),k*.6,1.5,2.9,PJ);add(new THREE.CylinderGeometry(.05,.05,3,6),MM(0x555a60,.8,.4),k*.6,1.5,-2.9,PJ)}
 for(let k=-4;k<=4;k++){add(new THREE.CylinderGeometry(.05,.05,3,6),MM(0x555a60,.8,.4),-3.7,1.5,k*.6,PJ);add(new THREE.CylinderGeometry(.05,.05,3,6),MM(0x555a60,.8,.4),3.7,1.5,k*.6,PJ)}
 add(new THREE.BoxGeometry(2,.4,1),M(0x6a5a4a),-2.2,.25,-2,PJ);
-{const gd=human(0x2a4a8a,0x1a2a4a,0x222222,0xe0ac86,{outfit:'coat',hs:'short',beard:1,hat:'cap',hc:0x1a2a5a,acc:0xc0c4cc});gd.position.set(0,0,4.6);PJ.add(gd);const l=label('Carcereiro','#9bf',.8);l.position.y=2.4;gd.add(l);const pl=new THREE.PointLight(0xffc080,.8,16);pl.position.set(0,3.5,0);PJ.add(pl)}
+{const gd=human(0x2a4a8a,0x1a2a4a,0x222222,0xe0ac86,{outfit:'coat',hs:'short',beard:1,hat:'cap',hc:0x1a2a5a,acc:0xc0c4cc});gd.position.set(0,0,4.6);PJ.add(gd);window.JGD=gd;const l=label('Carcereiro','#9bf',.8);l.position.y=2.4;gd.add(l);const pl=new THREE.PointLight(0xffc080,.8,16);pl.position.set(0,3.5,0);PJ.add(pl)}
 // cadeia em cada cidade (porta voltada para o centro da vila)
 const JOFF=[[-23.9,-2.1],[15.4,18.4],[23.9,2.1],[24,0],[0,24],[-6.2,-23.2],[24,0]],JAILS=[];
 T.forEach((t,ti)=>{const[x,z]=offRoad(t.x+JOFF[ti][0],t.z+JOFF[ti][1],11),dx=x-t.x,dz=z-t.z,g=new THREE.Group();g.position.set(x,H(x,z),z);
@@ -1178,7 +1184,7 @@ function fquad(kind){
   TL.rotation.x=sit?.5:-.3;TL.rotation.y=sit?(kind=='cat'?1.2:.7):0;TL.rotation.z=sit?0:Math.sin(t*(mv?10:4))*.4};
  g.animate(0,0,false);return g}
 function skInfo(k){const x=Math.floor(xp[k]),l=lvl(x);say(NM[k]+': nível '+l+', '+x+' XP'+(l<99?'. Faltam '+(XT[l+1]-x)+' para o nível '+(l+1)+'.':'.'))}
-function say(t,c=''){const d=document.createElement('div');d.className=c;d.textContent=t;const ch=$('#chat');ch.appendChild(d);while(ch.children.length>30)ch.firstChild.remove();ch.scrollTop=9e9}
+function say(t,c=''){npcBubble(t);const d=document.createElement('div');d.className=c;d.textContent=t;const ch=$('#chat');ch.appendChild(d);while(ch.children.length>30)ch.firstChild.remove();ch.scrollTop=9e9}
 // ===== DADOS: tabela de itens (slot = onde veste; stack = empilhável; w = peso em kg) =====
 const ITEMS={
  peixe:{n:'Peixe',i:'🐟',w:.5,food:4,ex:'Um peixe fresco do lago. Cura 4 de vida.'},
@@ -1429,7 +1435,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
  if(cur==11&&Math.hypot(me.x-FX,me.z-FZ)>9){cur=0;render()}
  petTick(dt);if(me.pshop){const n=NPC.domadora;if(Math.hypot(me.x-n.x,me.z-n.z)>8){me.pshop=0;if(cur==13)render()}}
  audioTick(dt);achT+=dt;if(achT>1){achT=0;chkAch()}
- mpTick(dt,mode);holdWep();treeTick(dt);guideTick(dt);houseTick(dt);canopyTick(dt);jailTick(dt);sleepTick(dt);staTick(dt,mode);groundTick(dt);
+ bubTick(dt);mpTick(dt,mode);holdWep();treeTick(dt);guideTick(dt);houseTick(dt);canopyTick(dt);jailTick(dt);sleepTick(dt);staTick(dt,mode);groundTick(dt);
  if(cur==16){const n=NPC['corretor'+me.br];if(n&&Math.hypot(me.x-n.x,me.z-n.z)>8){cur=0;render()}}pbs.visible=(me.bt-=dt)>0;
  me.mt=(me.mt||0)+dt;if(me.mt>5){me.mt=0;if(me.mana<me.mmax){me.mana++;hud()}}
  if(cur==15){const n=NPC['carro'+me.tr];if(n&&Math.hypot(me.x-n.x,me.z-n.z)>8){cur=0;render()}}
@@ -1463,6 +1469,32 @@ try{if(!ST.get(SK)&&!gold)gold=40}catch(e){}
 if(JLOAD){let b=0,bd=1e9;T.forEach((t,i)=>{const d=Math.hypot(me.x-t.x,me.z-t.z);if(d<bd){bd=d;b=i}});goJail(b)}
 vis(NPC.loja,false);vis(co,false);
 addEventListener('pagehide',save);addEventListener('beforeunload',save);document.addEventListener('visibilitychange',save);setInterval(save,5000);
+// ===== v10: BALÕES DE FALA (NPCs e jogadores) =====
+const BUB=[];
+function bubble(g,text,sec){if(!g)return;if(g._bub){g.remove(g._bub.s);const i=BUB.indexOf(g._bub);if(i>=0)BUB.splice(i,1);g._bub=null}
+ text=String(text).replace(/\s+/g,' ').trim().slice(0,90);if(!text)return;
+ const FS=28,W=270,cv=document.createElement('canvas'),m=cv.getContext('2d');m.font='600 '+FS+'px sans-serif';
+ const words=text.split(' '),L=[];let cu='';for(const w of words){const t=cu?cu+' '+w:w;if(m.measureText(t).width>W&&cu){L.push(cu);cu=w}else cu=t}if(cu)L.push(cu);if(L.length>4){L.length=4;L[3]=L[3].replace(/.{0,2}$/,'…')}
+ const pw=Math.ceil(Math.min(W+10,Math.max(...L.map(l=>m.measureText(l).width)))+30),ph=L.length*(FS+6)+20,tl=16;cv.width=pw+8;cv.height=ph+tl+8;
+ const c=cv.getContext('2d');c.font='600 '+FS+'px sans-serif';c.textAlign='center';c.textBaseline='middle';
+ const r=16,x0=4,y0=4;c.beginPath();c.moveTo(x0+r,y0);c.lineTo(x0+pw-r,y0);c.quadraticCurveTo(x0+pw,y0,x0+pw,y0+r);c.lineTo(x0+pw,y0+ph-r);c.quadraticCurveTo(x0+pw,y0+ph,x0+pw-r,y0+ph);
+ c.lineTo(x0+pw/2+12,y0+ph);c.lineTo(x0+pw/2,y0+ph+tl);c.lineTo(x0+pw/2-12,y0+ph);c.lineTo(x0+r,y0+ph);c.quadraticCurveTo(x0,y0+ph,x0,y0+ph-r);c.lineTo(x0,y0+r);c.quadraticCurveTo(x0,y0,x0+r,y0);c.closePath();
+ c.fillStyle='rgba(255,255,255,.97)';c.fill();c.lineWidth=3;c.strokeStyle='#2a2118';c.stroke();c.fillStyle='#1a1a1a';
+ L.forEach((l,i)=>c.fillText(l,x0+pw/2,y0+14+(FS+6)*i+(FS+6)/2));
+ const tex=new THREE.CanvasTexture(cv),sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));sp.renderOrder=20;
+ const k=.0075;sp.scale.set(cv.width*k,cv.height*k,1);sp.center.set(.5,0);sp.position.set(0,2.8,0);g.add(sp);
+ const b={s:sp,g,t:0,d:sec||4};g._bub=b;BUB.push(b)}
+function bubTick(dt){for(let i=BUB.length-1;i>=0;i--){const b=BUB[i];b.t+=dt;const r=b.d-b.t;if(r<.5)b.s.material.opacity=Math.max(0,r/.5);
+ if(r<=0){b.g.remove(b.s);try{b.s.material.map.dispose();b.s.material.dispose()}catch(e){}if(b.g._bub===b)b.g._bub=null;BUB.splice(i,1)}}}
+// quando o texto do log tem o formato "Nome: fala", mostra o balão sobre o NPC que fala
+function npcBubble(t){try{const m=/^([A-Za-zÀ-ÿ' ]{3,26}): (.{2,})$/.exec(t);if(!m)return;const nm=m[1].trim().toLowerCase(),txt=m[2];let g=null;
+ if(me.jail){if(nm=='carcereiro')g=window.JGD}
+ else if(HS.o&&HS.g&&HS.g.visible&&HS.mode){if(nm=='dono'||nm=='dona')g=HS.g;else if(nm.indexOf('guarda de')==0&&COP.visible)g=COP}
+ else if(!me.in){let best=null,bd=1e9;for(const k in NPC){const n=NPC[k],nn=n.nome.toLowerCase();if(nn==nm||nn.endsWith(' '+nm)||nm.endsWith(' '+nn)||nn.indexOf(nm+' ')==0){const d=Math.hypot(me.x-n.x,me.z-n.z);if(d<bd){bd=d;best=n}}}if(best&&bd<60)g=best.g}
+ if(g)bubble(g,txt,clamp(2.8+txt.length*.045,3.2,7.5))}catch(e){}}
+const OWL1=['O que você faz na minha casa? Saia agora!','Quem é você? Não convidei ninguém!','Isso é invasão! Fora da minha casa!','Ei! Ninguém entra assim na casa dos outros!'],OWL2=['Eu avisei! Fora daqui!','Já chega! Rua!','Última chance, ou chamo a guarda!','Saia já, sua pessoa abusada!'];
+const owPick=a=>a[Math.floor(Math.random()*a.length)];
+
 // ===== v9: TELA INICIAL, CRIADOR DE PERSONAGEM E MULTIPLAYER =====
 let CD=null,CRM=null;const CRV={r:null,s:null,c:null,m:null,ang:.5,on:0};
 const GO=(()=>{let v='';try{v=ST.get('mr_go')||'';ST.del('mr_go')}catch(e){}return v})();
@@ -1503,7 +1535,7 @@ function crOk(){CD.name=(CD.name||'').trim().slice(0,12)||'Viajante';const go=CR
 const MP={peer:null,host:0,conns:{},code:'',id:'',pl:{},acc:0};
 function mpCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 function mpMsg(t,c){const e=$('#mpst');if(e){e.textContent=t;e.style.color=c||''}}
-function mpBadge(){const b=$('#mpbadge');if(!MP.peer||!MP.id){b.style.display='none';return}const n=Object.keys(MP.pl).length+1;b.style.display='block';b.textContent='👥 Sala '+MP.code+' · '+n+(n==1?' jogador':' jogadores')+' · tocar para sair'}
+function mpBadge(){const b=$('#mpbadge'),cb=$('#chbtn');if(cb)cb.classList.toggle('off',!(MP.peer&&MP.id));if(!MP.peer||!MP.id){b.style.display='none';if($('#cbar'))chClose();return}const n=Object.keys(MP.pl).length+1;b.style.display='block';b.textContent='👥 Sala '+MP.code+' · '+n+(n==1?' jogador':' jogadores')+' · tocar para sair'}
 function mpMenu(){$('#mpm').classList.remove('off');$('#title').classList.remove('off');const i=$('#mpc');if(!i._k){i._k=1;['keydown','keyup'].forEach(k=>i.addEventListener(k,e=>e.stopPropagation()))}}
 function mpBack(){mpStop();$('#mpm').classList.add('off')}
 function mpLeave(){if(confirm('Sair da sala multiplayer?')){mpStop();say('Você saiu da sala.','y')}}
@@ -1540,9 +1572,16 @@ function mpConn(c){c.on('open',()=>{MP.conns[c.peer]=c;c.send({t:'hi',id:MP.id,n
 function mpData(m,c){if(!m||typeof m!='object')return;
  if(m.t=='hi'){if(m.id===MP.id||MP.pl[m.id])return;mpAdd(m.id,String(m.name||'Viajante').slice(0,12),m.ap,c.peer);if(MP.host)mpSend(m,c.peer)}
  else if(m.t=='p'){const r=MP.pl[m.id];if(r){r.tx=+m.x||0;r.tz=+m.z||0;r.in=m.in?1:0;if(!r.seen){r.seen=1;r.x=r.tx;r.z=r.tz}}if(MP.host)mpSend(m,c.peer)}
+ else if(m.t=='c'){const r=MP.pl[m.id],t=chClean(m.txt),now=performance.now();if(r&&t&&now-(r.ct||0)>400){r.ct=now;chShow(r.name,t,r.g,0)}if(MP.host)mpSend({t:'c',id:m.id,txt:t},c.peer)}
  else if(m.t=='bye'){mpDrop(m.id)}}
 function mpAdd(id,name,ap,via){const a=Object.assign(defChar(ap&&ap.gen),ap||{});const g=mkChar(a);const l=label(name,'#9be37a',.8);l.position.y=2.4;g.add(l);g.visible=false;g.sw=0;S.add(g);MP.pl[id]={g,name,ap:a,via,x:0,z:0,tx:0,tz:0,in:0,seen:0,t:0};say('👥 '+name+' entrou no reino!','g');mpBadge()}
 function mpDrop(id){const r=MP.pl[id];if(!r)return;S.remove(r.g);delete MP.pl[id];say('👥 '+r.name+' saiu do reino.','y');mpBadge()}
+
+function chClean(t){return String(t==null?'':t).replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,80)}
+function chOpen(){if(!MP.peer||!MP.id)return;const b=$('#cbar'),i=$('#cin');b.classList.remove('off');if(!i._k){i._k=1;['keydown','keyup'].forEach(k=>i.addEventListener(k,e=>{e.stopPropagation();if(k=='keydown'&&e.key=='Enter'){e.preventDefault();chSend()}}))}i.value='';i.focus()}
+function chClose(){$('#cbar').classList.add('off');$('#cin').blur()}
+function chShow(nm,t,g,mine){say('💬 '+nm+': '+t,mine?'g':'');bubble(g,t,clamp(3+t.length*.05,3.5,8))}
+function chSend(){const t=chClean($('#cin').value);chClose();if(!t||!MP.peer||!MP.id)return;const nm=(CH&&CH.name)||'Viajante';mpSend({t:'c',id:MP.id,txt:t});chShow(nm,t,pg,1)}
 function mpTick(dt,mode){if(!MP.peer||!MP.id)return;MP.acc+=dt;if(MP.acc>.12){MP.acc=0;mpSend({t:'p',id:MP.id,x:+me.x.toFixed(2),z:+me.z.toFixed(2),in:me.in?1:0})}
  for(const k in MP.pl){const r=MP.pl[k];if(!r.seen)continue;const dx=r.tx-r.x,dz=r.tz-r.z,d=Math.hypot(dx,dz);if(d>25){r.x=r.tx;r.z=r.tz}else{const s=Math.min(1,dt*8);r.x+=dx*s;r.z+=dz*s}
   const mv=d>.15;r.g.visible=!r.in&&!me.in;r.g.position.set(r.x,H(r.x,r.z),r.z);if(mv)face(r.g,dx,dz,dt);r.t+=dt;pose(r.g,r.t,mv?'walk':'')}}
