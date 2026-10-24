@@ -652,11 +652,58 @@ const GRB={
  feet:id=>{const o=[],m=ITEMS[id].metal?MM(metalOf(id),.6,.4):M(0x3a2414,.8);[pg.kL,pg.kR].forEach(k=>{AD(o,k,new THREE.CylinderGeometry(.105,.095,.22,10),m,0,-.3,0);AD(o,k,new THREE.BoxGeometry(.17,.12,.34),m,0,-.4,.08)});return o},
  hands:id=>{const o=[],m=ITEMS[id].metal?MM(metalOf(id),.6,.4):M(0x4a3020,.85);[pg.eL,pg.eR].forEach(e=>{AD(o,e,new THREE.SphereGeometry(.088,10,8),m,0,-.33,0);AD(o,e,new THREE.CylinderGeometry(.072,.07,.1,10),m,0,-.26,0)});return o},
  shield:id=>{const o=[],m=ITEMS[id].mat=='iron'?M(0x7a5a30,.85):MM(metalOf(id),.6,.4),r=MM(metalOf(id),.7,.35),e=pg.eL;AD(o,e,new THREE.CylinderGeometry(.3,.3,.05,20),m,-.13,-.2,.04).rotation.z=Math.PI/2;AD(o,e,new THREE.TorusGeometry(.3,.025,6,20),r,-.155,-.2,.04).rotation.y=Math.PI/2;AD(o,e,new THREE.SphereGeometry(.07,8,6),r,-.17,-.2,.04);return o}};
+// ===== v12: ARMADURAS REALISTAS (valem para o jogador e para os outros jogadores do multiplayer) =====
+var EQS=['head','body','legs','feet','hands','shield'],LASTEQ='';
+const eqIds=()=>{const o={};EQS.forEach(k=>{if(eq[k])o[k]=eq[k].id});return o};
+const sanEq=o=>{const r={};if(o&&typeof o=='object')EQS.forEach(k=>{const id=o[k];if(typeof id=='string'&&ITEMS[id]&&ITEMS[id].slot==k)r[k]=id});return r};
+const TIK={bronze:0,iron:1,steel:2,mithril:3},AMC={bronze:[0xb8733a,0xe2b04e,0x7a4a24,0],iron:[0xa6aeb8,0x6a727c,0x555d66,0],steel:[0xd3dae3,0xf0c860,0x8a94a0,0],mithril:[0x4a6fd0,0x9fd4ff,0x2a4aa8,0x143a8a],leather:[0x6b4a2a,0x9a7a4a,0x3a2414,0]},AMX={};
+let MAILT=null;
+function mailTex(){if(MAILT)return MAILT;const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#7c828c';g.fillRect(0,0,64,64);
+ for(let y=0;y<4;y++)for(let x=0;x<4;x++)[0,-64].forEach(ox=>{const cx=x*16+8+(y%2?8:0)+ox,cy=y*16+8;g.beginPath();g.arc(cx,cy,6.2,0,6.3);g.strokeStyle='#3a3f48';g.lineWidth=3.2;g.stroke();g.beginPath();g.arc(cx,cy,6.2,0,6.3);g.strokeStyle='#eef2f8';g.lineWidth=1.6;g.stroke()});
+ MAILT=new THREE.CanvasTexture(c);MAILT.wrapS=MAILT.wrapT=THREE.RepeatWrapping;MAILT.repeat.set(3,1.6);return MAILT}
+function AMt(mat){if(AMX[mat])return AMX[mat];const k=AMC[mat]||AMC.iron,lea=mat=='leather',mk=(c,m,r,e,dbl)=>{const x=new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});if(e){x.emissive=new THREE.Color(e);x.emissiveIntensity=.6}if(dbl)x.side=THREE.DoubleSide;return x};
+ return AMX[mat]={m:mk(k[0],lea?0:.55,lea?.85:.38,k[3]),md:mk(k[0],lea?0:.55,lea?.85:.38,k[3],1),t:mk(k[1],lea?0:.7,.3,k[3]),d:mk(k[2],.45,.55),dd:mk(k[2],.45,.55,0,1),
+  mail:new THREE.MeshStandardMaterial({color:k[0],map:mailTex(),metalness:.45,roughness:.55,side:THREE.DoubleSide}),L:mk(0x6b4a2a,0,.85),
+  gem:new THREE.MeshStandardMaterial({color:0x5fb4ff,emissive:0x2a7ae0,emissiveIntensity:.9,metalness:.3,roughness:.2}),blk:new THREE.MeshBasicMaterial({color:0x101216})}}
+function armCtx(R,id,o){const d=ITEMS[id],me_=!!d.metal,K=AMt(me_?d.mat:'leather'),ti=me_?(TIK[d.mat]||1):0,
+ A=(p,g,m,x,y,z)=>{const k=add(g,m,x,y,z,p);o.push([p,k]);return k};return{d,K,ti,M:me_,A,CG:THREE.CylinderGeometry,SG:THREE.SphereGeometry,BG:THREE.BoxGeometry,TG:THREE.TorusGeometry,F:!!R.fem}}
+const ARM={
+ head:(R,id,o)=>{const{K,ti,A,CG,SG,BG}=armCtx(R,id,o),h=R.hd,a=(g,m,x,y,z)=>A(h,g,m,x,y,z);
+  a(new SG(.235,18,12,0,6.3,0,1.55),K.m,0,.04,-.01);a(new CG(.24,.24,.05,18),K.t,0,-.015,-.01);a(new BG(.04,.16,.03),K.m,0,-.03,.225);
+  if(ti==0){a(new BG(.03,.07,.3),K.t,0,.27,-.01);[-1,1].forEach(s=>a(new BG(.03,.1,.08),K.m,s*.215,-.08,.02))}
+  if(ti==1){[-1,1].forEach(s=>{a(new BG(.03,.16,.11),K.m,s*.215,-.1,.04)});a(new CG(.225,.27,.15,16,1,true,Math.PI*.55,Math.PI*.9),K.dd,0,-.1,-.01)}
+  if(ti>=2){a(new SG(.232,16,10,Math.PI/2-1.25,2.5,.95,1.2),K.md,0,-.02,.0);a(new BG(.16,.028,.02),K.blk,0,.04,.224);[0,1,2].forEach(i=>a(new BG(.02,.018,.02),K.blk,.05+i*0,-.06-i*.03,.222));
+   a(new BG(.03,.13,.34),K.t,0,.28,-.01);a(new CG(.225,.27,.15,16,1,true,Math.PI*.55,Math.PI*.9),K.dd,0,-.1,-.01);
+   if(ti==2)a(new THREE.ConeGeometry(.05,.16,6),AMt('bronze').d,0,.4,-.02);else{[-1,1].forEach(s=>{const w=a(new THREE.ConeGeometry(.06,.34,5),K.t,s*.25,.2,-.03);w.rotation.z=-s*1.15});a(new THREE.OctahedronGeometry(.04),K.gem,0,.13,.228)}}},
+ body:(R,id,o)=>{const{K,ti,A,CG,SG,BG,TG,F}=armCtx(R,id,o),t=R.tor,rt=F?.29:.34,zz=.64,fp=(r1,r2,h,y,m)=>{const k=A(t,new CG(r1,r2,h,20,1,true,-Math.PI*.46,Math.PI*.92),m,0,y,0);k.scale.z=zz+.03;return k};
+  A(t,new CG(rt,rt*.86,.66,20),K.mail,0,1.2,0).scale.z=zz;A(t,new CG(rt*.88,rt*1.12,.46,20,1,true),K.mail,0,.68,0).scale.z=.68;
+  A(t,new CG(.15,.17,.11,14),K.m,0,1.6,0);A(t,new CG(.31,.31,.08,18),K.L,0,.97,0).scale.z=.66;A(t,new BG(.1,.09,.03),K.t,0,.97,F?.19:.215);
+  if(ti==0)[1.38,1.26,1.14].forEach(y=>[-.09,.09].forEach(x=>A(t,new SG(.02,6,5),K.t,x,y,.235)));
+  if(ti>=2){fp(rt+.025,rt*.86+.02,.5,1.24,K.md);A(t,new BG(.03,.5,.045),K.t,0,1.24,.25);[0,1,2].forEach(i=>fp(.325+i*.012,.335+i*.012,.1,.93-i*.09,K.md));if(ti==3)A(t,new THREE.OctahedronGeometry(.05),K.gem,0,1.34,.27)}
+  [R.aL,R.aR].forEach(a=>{A(a,new CG(.092,.08,.3,12),K.mail,0,-.17,0);const pa=(r,y,s)=>A(a,new SG(r,14,8,0,6.3,0,1.45),K.md,0,y,0).scale.set(1.15*s,.9,1.1*s);
+   pa(.145,.07,1);if(ti>=1)pa(.13,-.01,1.05);if(ti>=2){pa(.12,-.08,1.08);A(a,new TG(.13,.014,6,14),K.t,0,.075,0).rotation.x=Math.PI/2}});
+  if(ti>=2)[R.eL,R.eR].forEach(e=>{A(e,new SG(.075,10,8),K.m,0,0,0);A(e,new CG(.07,.058,.25,10),K.m,0,-.15,0)})},
+ legs:(R,id,o)=>{const{K,ti,A,CG,SG,BG,TG,M:mt}=armCtx(R,id,o);
+  [R.lL,R.lR].forEach(l=>{A(l,new CG(.138,.108,.38,12),K.m,0,-.21,0);if(mt&&ti>=1)A(l,new TG(.125,.018,6,12),K.t,0,-.03,0).rotation.x=Math.PI/2;else A(l,new TG(.12,.016,6,12),K.d,0,-.1,0).rotation.x=Math.PI/2});
+  [R.kL,R.kR].forEach(k=>{A(k,new SG(mt?.105:.1,10,8),K.m,0,0,0).scale.set(1,.95,1.1);A(k,new CG(.1,.08,.38,12),K.m,0,-.2,0);if(mt)A(k,new BG(.03,.34,.03),K.t,0,-.2,.095);if(ti>=2)A(k,new THREE.ConeGeometry(.03,.07,5),K.t,0,0,.11).rotation.x=Math.PI/2})},
+ feet:(R,id,o)=>{const{K,ti,A,CG,SG,BG}=armCtx(R,id,o);
+  [R.kL,R.kR].forEach(k=>{A(k,new CG(.108,.092,.24,12),K.m,0,-.3,0);A(k,new BG(.18,.1,.3),K.m,0,-.405,.07);A(k,new SG(.09,10,8),K.m,0,-.4,.2).scale.set(1,.7,1);A(k,new CG(.118,.118,.045,12),K.t,0,-.19,0);A(k,new BG(.19,.035,.34),K.d,0,-.46,.075);if(ti>=2)A(k,new BG(.14,.03,.1),K.t,0,-.36,.16)})},
+ hands:(R,id,o)=>{const{K,ti,A,CG,SG,BG,M:mt}=armCtx(R,id,o);
+  [R.eL,R.eR].forEach(e=>{A(e,new CG(.082,.068,.13,10),K.m,0,-.255,0);A(e,new SG(.092,10,8),K.m,0,-.335,0);if(mt){A(e,new BG(.11,.025,.08),K.t,0,-.31,.03);[-.03,0,.03].forEach(x=>A(e,new BG(.022,.07,.022),K.m,x,-.4,.04))}})},
+ shield:(R,id,o)=>{const{K,ti,A,CG,SG,BG,TG}=armCtx(R,id,o),e=R.eL;
+  if(ti<=1){const w=ti==1;A(e,new CG(.31,.31,.05,22),w?K.L:K.m,-.14,-.2,.04).rotation.z=Math.PI/2;A(e,new TG(.31,.028,6,22),w?K.d:K.t,-.165,-.2,.04).rotation.y=Math.PI/2;A(e,new SG(.08,10,8),K.t,-.17,-.2,.04);
+   if(w)[0,1.05,2.1].forEach(r=>{const b=A(e,new BG(.02,.58,.05),K.d,-.168,-.2,.04);b.rotation.x=r})}
+  else{const sh=new THREE.Shape();sh.moveTo(-.27,.34);sh.lineTo(.27,.34);sh.lineTo(.27,.02);sh.quadraticCurveTo(.27,-.3,0,-.5);sh.quadraticCurveTo(-.27,-.3,-.27,.02);sh.lineTo(-.27,.34);
+   const m=A(e,new THREE.ExtrudeGeometry(sh,{depth:.05,bevelEnabled:true,bevelThickness:.015,bevelSize:.015,bevelSegments:1}),K.m,-.1,-.14,.04);m.rotation.y=-Math.PI/2;m.scale.set(.8,.8,1);
+   A(e,new BG(.03,.5,.045),K.t,-.2,-.2,.04);A(e,new BG(.03,.04,.34),K.t,-.2,-.1,.04);if(ti==3)A(e,new THREE.OctahedronGeometry(.045),K.gem,-.215,-.12,.04)}}};
+function dressRig(R,E){if(!R||!R.tor||!R.aL)return;R.gr=R.gr||{};let hid=null;
+ for(const sl of EQS){const v=E&&E[sl],id=v?(v.id||v):null,c=R.gr[sl];if(sl=='head')hid=id;if(c&&c.id===id)continue;if(c)c.o.forEach(([p,m])=>p.remove(m));const o=[];if(id&&ITEMS[id])ARM[sl](R,id,o);R.gr[sl]={id,o}}
+ if(R.hairCap)R.hairCap.visible=!hid}
 function holdWep(){
  const w=eq.weapon&&eq.weapon.id,t=eq.tool&&eq.tool.id,gather=me.act&&(me.act.t=='tree'||me.act.t=='rock');
  const bw=!!(w&&ITEMS[w].ranged),r=gather&&t?t:(w&&!bw?w:(!w&&t?t:null));
  setGear('hand',r,handItem);pg.carry=!!r;if(pg.hairCap)pg.hairCap.visible=!eq.head;setGear('bow',bw&&!gather?w:null,()=>{const o=[];bowMesh(o);return o});pg.bow=bw&&!gather;
- for(const sl in GRB)setGear(sl,eq[sl]&&eq[sl].id||null,GRB[sl])}
+ dressRig(pg,eq);try{const sg=EQS.map(k=>eq[k]?eq[k].id:'').join('|');if(sg!==LASTEQ){LASTEQ=sg;if(MP.peer&&MP.id)mpSend({t:'e',id:MP.id,eq:eqIds()})}}catch(e){}}
 const TOOLS=[['axe',25],['axef',80],['axea',220],['axem',600],['picareta',35],['picaretaf',100],['picaretaa',260],['picaretam',650],['vara',20],['varaf',90],['varam',300],['isca',6],['martelo',30],['luvas',30],['pocaom',25],['pocao',20],['fosforo',5],['massa',20]];
 function hasTool(id){return !!(eq.tool&&eq.tool.id==id)}
 npc('ferramenteiro','Bento',-14,3,0x8a5a2a,0x3a2a1a);
@@ -1573,21 +1620,22 @@ function mpUp(){mpBadge();if(MP.host){mpMsg('Sala pronta! Passe este código aos
 function mpStop(){const p=MP.peer;MP.peer=null;for(const k in MP.pl){try{S.remove(MP.pl[k].g)}catch(e){}}MP.pl={};try{for(const k in MP.conns)MP.conns[k].close()}catch(e){}MP.conns={};try{if(p)p.destroy()}catch(e){}MP.id='';MP.host=0;
  const c=$('#mpcode');if(c)c.textContent='';const g=$('#mpgo');if(g)g.classList.add('off');mpBadge()}
 function mpSend(m,except){for(const k in MP.conns){if(k===except)continue;const c=MP.conns[k];try{if(c.open)c.send(m)}catch(e){}}}
-function mpConn(c){c.on('open',()=>{MP.conns[c.peer]=c;c.send({t:'hi',id:MP.id,name:(CH&&CH.name)||'Viajante',ap:CH||defChar(GEN)});if(MP.host)for(const k in MP.pl){const p=MP.pl[k];c.send({t:'hi',id:k,name:p.name,ap:p.ap})}});
+function mpConn(c){c.on('open',()=>{MP.conns[c.peer]=c;c.send({t:'hi',id:MP.id,name:(CH&&CH.name)||'Viajante',ap:CH||defChar(GEN),eq:eqIds()});if(MP.host)for(const k in MP.pl){const p=MP.pl[k];c.send({t:'hi',id:k,name:p.name,ap:p.ap,eq:p.eq})}});
  c.on('data',m=>mpData(m,c));
  const gone=()=>{if(MP.conns[c.peer]!==c)return;delete MP.conns[c.peer];for(const k of Object.keys(MP.pl))if(MP.pl[k].via===c.peer){mpDrop(k);if(MP.host)mpSend({t:'bye',id:k})}
   if(!MP.host&&MP.peer){say('⚠️ A sala foi encerrada.','r');mpStop()}};
  c.on('close',gone);c.on('error',gone)}
 function mpData(m,c){if(!m||typeof m!='object')return;
- if(m.t=='hi'){if(m.id===MP.id||MP.pl[m.id])return;mpAdd(m.id,String(m.name||'Viajante').slice(0,12),m.ap,c.peer);if(MP.host)mpSend(m,c.peer)}
+ if(m.t=='hi'){if(m.id===MP.id||MP.pl[m.id])return;mpAdd(m.id,String(m.name||'Viajante').slice(0,12),m.ap,c.peer,m.eq);if(MP.host)mpSend(m,c.peer)}
  else if(m.t=='p'){const r=MP.pl[m.id];if(r){r.tx=+m.x||0;r.tz=+m.z||0;r.in=m.in?1:0;if(!r.seen){r.seen=1;r.x=r.tx;r.z=r.tz}}if(MP.host)mpSend(m,c.peer)}
  else if(m.t=='m'){if(!MP.host)mobApply(m)}
  else if(m.t=='k'){if(!MP.host){const w=W[m.i];if(w&&w.hx<450)killEnemy(w,String(m.by))}}
  else if(m.t=='a'){if(!MP.host&&!me.in&&!me.dun&&!me.jail){const w=W[m.i];if(w&&!(w.dead>0)&&Math.hypot(me.x-w.x,me.z-w.z)<6){w.ln=.3;mobStrike(w)}}}
  else if(m.t=='d'){if(MP.host){const w=W[m.i],d=Math.max(0,Math.min(60,+m.d||0));if(w&&w.hx<450&&!(w.dead>0)&&d>0){w.hp-=d;hit(w);splat(w,d);if(w.hp<=0)killEnemy(w,c.peer)}}}
  else if(m.t=='c'){const r=MP.pl[m.id],t=chClean(m.txt),now=performance.now();if(r&&t&&now-(r.ct||0)>400){r.ct=now;chShow(r.name,t,r.g,0)}if(MP.host)mpSend({t:'c',id:m.id,txt:t},c.peer)}
- else if(m.t=='bye'){mpDrop(m.id)}}
-function mpAdd(id,name,ap,via){const a=Object.assign(defChar(ap&&ap.gen),ap||{});const g=mkChar(a);const l=label(name,'#9be37a',.8);l.position.y=2.4;g.add(l);g.visible=false;g.sw=0;S.add(g);MP.pl[id]={g,name,ap:a,via,x:0,z:0,tx:0,tz:0,in:0,seen:0,t:0};say('👥 '+name+' entrou no reino!','g');mpBadge()}
+ else if(m.t=='e'){const r=MP.pl[m.id];if(r){r.eq=sanEq(m.eq);dressRig(r.g,r.eq)}if(MP.host)mpSend(m,c.peer)}
+  else if(m.t=='bye'){mpDrop(m.id)}}
+function mpAdd(id,name,ap,via,ev){const a=Object.assign(defChar(ap&&ap.gen),ap||{});const g=mkChar(a);const l=label(name,'#9be37a',.8);l.position.y=2.4;g.add(l);g.visible=false;g.sw=0;S.add(g);const ee=sanEq(ev);dressRig(g,ee);MP.pl[id]={g,name,ap:a,via,eq:ee,x:0,z:0,tx:0,tz:0,in:0,seen:0,t:0};say('👥 '+name+' entrou no reino!','g');mpBadge()}
 function mpDrop(id){const r=MP.pl[id];if(!r)return;S.remove(r.g);delete MP.pl[id];say('👥 '+r.name+' saiu do reino.','y');mpBadge()}
 
 // ===== v11: MONSTROS COMPARTILHADOS (o anfitrião da sala controla os monstros do mundo) =====
