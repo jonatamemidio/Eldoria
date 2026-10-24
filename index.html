@@ -394,7 +394,7 @@ const lvl=x=>{let l=1;while(l<99&&x>=XT[l+1])l++;return l};
 const SKL=['attack','strength','defence','hitpoints','ranged','magic','prayer','pesca','lenha'];
 const NM={attack:'Ataque',strength:'Força',defence:'Defesa',hitpoints:'Pontos de Vida',ranged:'Distância',magic:'Magia',prayer:'Oração',pesca:'Pesca',lenha:'Lenha'};
 const IC={attack:'⚔️',strength:'💪',defence:'🛡️',hitpoints:'❤️',ranged:'🏹',magic:'🔮',prayer:'🙏',pesca:'🎣',lenha:'🪓'};
-const combatLvl=()=>{const L=k=>lvl(xp[k]),b=.25*(L('defence')+L('hitpoints')+Math.floor(L('prayer')/2));return Math.floor(b+Math.max(.325*(L('attack')+L('strength')),.325*Math.floor(L('ranged')*1.5),.325*Math.floor(L('magic')*1.5)))};
+const combatLvl=()=>{const L=k=>lvl(xp[k]),b=.25*(L('defence')+Math.max(1,L('hitpoints')-9)+Math.floor(L('prayer')/2));return Math.floor(b+Math.max(.325*(L('attack')+L('strength')),.325*Math.floor(L('ranged')*1.5),.325*Math.floor(L('magic')*1.5)))};
 // som de level up (WebAudio, sem arquivos)
 let AC;function snd(f=[523,659,784,1047],d=.13){if(AUD.fx==0)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();f.forEach((hz,i)=>{const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+i*d;o.type='square';o.frequency.value=hz;g.gain.setValueAtTime(.06,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d)})}catch(e){}}
 function banner(n,l){const d=document.createElement('div');d.textContent='🎉 '+n+': nível '+l+'!';d.style.cssText='position:absolute;left:50%;top:30%;transform:translateX(-50%);background:#000c;color:#ffe033;padding:8px 14px;border:2px solid #ffe033;border-radius:8px;font-weight:700;pointer-events:none;z-index:5;text-align:center';$('#view').appendChild(d);setTimeout(()=>d.remove(),2600)}
@@ -411,12 +411,14 @@ const STY=[{a:3,s:0,d:0},{a:0,s:3,d:0},{a:0,s:0,d:3},{a:1,s:1,d:1}]; // bônus d
 const atkSpd=()=>atkMode()=='magic'?5:(eq.weapon&&ITEMS[eq.weapon.id].spd||4); // velocidade da arma em ticks
 const hitChance=(a,d)=>a>d?1-(d+2)/(2*(a+1)):a/(2*(d+1)); // fórmula de acerto do OSRS
 const maxHit=(s,sb,b)=>Math.floor(.5+(s+8+sb)*(b+64)/640);  // dano máximo
+// dano: rolagem de 0 a máximo; quanto maior a força, mais a rolagem pende para valores altos (maior % do dado)
+const rollDmg=(mx,str)=>Math.min(mx,Math.floor(Math.pow(Math.random(),1/(1+str/40))*(mx+1)));
 function playerSwing(w){const st=STY[me.style];
  const A=(Math.floor(lvl(xp.attack)*pm('atk'))+st.a+8)*(bonus('atk')+64),D=(w.def+8)*(w.dbon+64);
- return Math.random()<hitChance(A,D)?Math.floor(Math.random()*(maxHit(Math.floor(lvl(xp.strength)*pm('str')),st.s,bonus('str'))+(pet&&pet.id=='cachorro'?1:0)+1)):0}
+ const SF=Math.floor(lvl(xp.strength)*pm('str'));const AL=lvl(xp.attack),AB=Math.floor(AL/12);/* maestria com a arma: cada 12 níveis de Ataque somam +1 ao dano máximo e deixam a rolagem um pouco melhor */return Math.random()<hitChance(A,D)?rollDmg(maxHit(SF,st.s,bonus('str'))+AB+(pet&&pet.id=='cachorro'?1:0),SF+Math.floor(AL/2)):0}
 function wolfSwing(w){const st=STY[me.style];
  const A=(w.atk+8)*64,D=(Math.floor(lvl(xp.defence)*pm('def'))+st.d+8)*(bonus('def')+64);
- return Math.random()<hitChance(A,D)?Math.floor(Math.random()*(maxHit(w.str,0,0)+1)):0}
+ return Math.random()<hitChance(A,D)?rollDmg(maxHit(w.str,0,0),w.str):0}
 function fightWolfOld(o){me.swing=.45;const d=attackRoll(o);o.hp-=d;hit(o);splat(o,d);
  if(d>0){xpHit(d);say('Você acerta o lobo ('+d+').')}else say('Você erra o golpe.');
  if(o.hp<=0){o.dead=20;o.g.visible=false;me.act=null;addXp('combate',14);say('Você derrotou o lobo!','g');if(q.lobos==1)q.kills++;render()}}
@@ -435,7 +437,7 @@ function spell(k){if(k=='strike'){me.spell=me.spell=='strike'?null:'strike';say(
 const atkMode=()=>me.spell&&cnt('runa')>0&&me.mana>=2?'magic':(eq.weapon&&ITEMS[eq.weapon.id].ranged&&eq.ammo&&eq.ammo.n>0?'ranged':'melee');
 function attackRoll(o){const m=atkMode(),st=STY[me.style],D=(o.def+8)*(o.dbon+64);me.mode=m;
  if(m=='magic'){take('runa',1);me.mana-=2;hud();addXp('magic',6);shoot(o,1);return Math.random()<hitChance((lvl(xp.magic)+8)*65,D)?Math.floor(Math.random()*3):0}
- if(m=='ranged'){eq.ammo.n--;if(!eq.ammo.n)delete eq.ammo;render();shoot(o,0);const A=(lvl(xp.ranged)+st.a+8)*(bonus('atk')+64);return Math.random()<hitChance(A,D)?Math.floor(Math.random()*(maxHit(lvl(xp.ranged),st.s,bonus('str'))+1)):0}
+ if(m=='ranged'){eq.ammo.n--;if(!eq.ammo.n)delete eq.ammo;render();shoot(o,0);const A=(lvl(xp.ranged)+st.a+8)*(bonus('atk')+64);return Math.random()<hitChance(A,D)?rollDmg(maxHit(lvl(xp.ranged),st.s,bonus('str')),lvl(xp.ranged)):0}
  return playerSwing(o)}
 function xpHit(d){const m=me.mode;if(m=='magic'){addXp('magic',2*d);addXp('hitpoints',Math.max(1,Math.round(d*1.3)))}else if(m=='ranged'){addXp('ranged',d*4);addXp('hitpoints',Math.max(1,Math.round(d*1.3)))}else addXp('combate',d*4)}
 const PR=[];function shoot(o,c){const m=new THREE.Mesh(new THREE.SphereGeometry(c?.14:.07,8,6),new THREE.MeshBasicMaterial({color:c?0x66ccff:0xd8c9a0}));S.add(m);PR.push({m,t:0,x0:me.x,z0:me.z,o})}
@@ -953,11 +955,17 @@ function treeTick(dt){
 function okLand(x,z){if(H(x,z)<.5)return false;for(const a of [[1,0],[-1,0],[0,1],[0,-1]])if(H(x+a[0]*2.5,z+a[1]*2.5)<.1)return false;return !OB.some(o=>Math.hypot(x-o.x,z-o.z)<o.r+1.5)}
 function safeSpot(x,z){if(okLand(x,z))return[x,z];for(let r=3;r<130;r+=4)for(let a=0;a<16;a++){const nx=x+Math.cos(a*.39)*r,nz=z+Math.sin(a*.39)*r;if(okLand(nx,nz))return[nx,nz]}return[x,z]}
 // xp
+// nível do personagem (1 a 99, inteiro): média de todas as habilidades (Vida já começa em 10, então conta a partir daí), arredondada (perto do próximo nível já conta como ele)
+const charPct=()=>Math.max(1,Math.min(99,Math.round(1+SKL.reduce((a,k)=>a+Math.max(0,lvl(xp[k])-(k=='hitpoints'?10:1))+xpPct(k)/100*(lvl(xp[k])<99?1:0),0)/SKL.length)));
 const xpPct=k=>{const x=xp[k],l=lvl(x);return l>=99?100:(x-XT[l])/(XT[l+1]-XT[l])*100};
 // HUD compacto: vida, oracao e mana
 $('#vida').innerHTML='<div class="hr">\u2764\ufe0f <span id="hp">10/10</span><i class="bb"><i id="hpb" style="background:#2c2"></i></i></div><div class="hr">🙏 <span id="pp">1/1</span><i class="bb"><i id="ppb" style="background:#4aa3ff"></i></i></div><div class="hr">🔷 <span id="mn">10/10</span><i class="bb"><i id="mpb" style="background:#2ad0d0"></i></i></div><div class="hr">🪙 <span id="gold">0</span> \u00b7 <span id="hora">--:--</span></div>';
 const pbc=document.createElement('canvas');pbc.width=128;pbc.height=24;
 const pbs=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(pbc),depthTest:false,transparent:true,fog:false}));pbs.scale.set(1.8,.34,1);pbs.position.y=2.35;pbs.visible=false;pg.add(pbs);
+// rótulo "Nível X%" fixo acima da cabeça do personagem (atualiza quando o valor muda)
+function updCharTag(){const txt='Nível '+charPct();if(pg._tag&&pg._txt===txt)return;
+ if(pg._tag){pg.remove(pg._tag);try{pg._tag.material.map.dispose();pg._tag.material.dispose()}catch(e){}}
+ const l=label(txt,'#ffe680',.5);l.position.y=2.05;pg.add(l);pg._tag=l;pg._txt=txt}
 function drawPBar(){const c=pbc.getContext('2d'),h=Math.max(0,Math.ceil(me.hp));c.clearRect(0,0,128,24);c.fillStyle='#000';c.fillRect(0,4,128,18);c.fillStyle='#a01818';c.fillRect(3,7,122,12);c.fillStyle='#22c03a';c.fillRect(3,7,122*clamp(me.hp/me.max,0,1),12);c.fillStyle='#fff';c.font='bold 11px sans-serif';c.textAlign='center';c.fillText(h+'/'+me.max,64,17);pbs.material.map.needsUpdate=true}
 function hud(){holdWep();me.mmax=10+(lvl(xp.magic)-1)*5;me.mana=Math.min(me.mana,me.mmax);
  $('#gold').textContent=gold;$('#hp').textContent=Math.ceil(me.hp)+'/'+me.max;$('#hpb').style.width=clamp(me.hp/me.max*100,0,100)+'%';
@@ -1657,7 +1665,7 @@ function drawNew(p){
  if(cur==10)p.innerHTML='<div style="width:100%"><div class="row">🏦 Banco <small>Toque nos itens da mochila (aba 🎒) para depositar. Toque abaixo para sacar.</small></div><div id="inv">'+(BANK.map((s,i)=>s?'<div class="sl" onclick="withdraw('+i+')">'+ITEMS[s.id].i+'<b class="qt">'+s.n+'</b></div>':'').join('')||'<div class="row">Vazio</div>')+'</div><div class="row">Sacar: '+[[1,'1'],[10,'10'],[0,'Tudo']].map(([v,n])=>'<button style="'+(bq==v?'background:#6b5a3c':'')+'" onclick="bq='+v+';render()">'+n+'</button>').join(' ')+' <button onclick="depAll()">Depositar tudo</button></div></div>';
  if(cur==7)p.innerHTML='<div style="width:100%"><div class="row">🙏 '+me.pp+'/'+me.ppmax+'<small>Enterre ossos para treinar. Recarregue no altar da igreja de Vila Real.</small></div>'+PRL.map(x=>{const on=me.pr&&me.pr[x[0]],lk=lvl(xp.prayer)<x[2];return '<div class="row"><button style="width:100%;text-align:left'+(on?';background:#6b5a3c':'')+(lk?';opacity:.45':'')+'" onclick="togPr(\''+x[0]+'\')">'+x[1]+' <small>Nv '+x[2]+' · '+x[3]+'</small></button></div>'}).join('')+'</div>';
  if(cur==8)p.innerHTML='<div style="width:100%">'+[['strike','Golpe de Vento','Dano até 2 · 1 runa · alcance 9'],['heal','Cura Menor','Cura 5 de vida · 2 runas']].map(([k,n,x])=>'<div class="row"><button style="width:100%;text-align:left'+(me.spell==k?';background:#6b5a3c':'')+'" onclick="spell(\''+k+'\')">'+n+' <small>'+x+'</small></button></div>').join('')+'<div class="row"><small>🌀 Runas: '+cnt('runa')+' · Toque em Golpe de Vento para ligar/desligar o autocast.</small></div></div>';
- if(cur==1)p.innerHTML='<div style="width:100%"><div id="skg">'+SKL.map(k=>'<div class="sk" onclick="skInfo(\''+k+'\')">'+IC[k]+' <b>'+lvl(xp[k])+'</b><small>/99</small><u class="xb"><u style="width:'+xpPct(k)+'%"></u></u></div>').join('')+'</div><div class="row" style="text-align:center">Combate: '+combatLvl()+' · Nível total: '+SKL.reduce((a,k)=>a+lvl(xp[k]),0)+'</div></div>';
+ if(cur==1)p.innerHTML='<div style="width:100%"><div class="row" style="text-align:center;font-size:13px;padding:3px 0">Nível total: <b style="color:#ffe680">'+charPct()+'</b> · Combate: '+combatLvl()+'</div><div id="skg">'+SKL.map(k=>'<div class="sk" onclick="skInfo(\''+k+'\')">'+IC[k]+' <b>'+lvl(xp[k])+'</b><small>/99</small><u class="xb"><u style="width:'+xpPct(k)+'%"></u></u></div>').join('')+'</div></div>';
  if(cur==0)p.innerHTML='<div><div id="inv">'+bag.map((s,i)=>'<div class="sl'+(me.use===i?' on':'')+'" data-b="'+i+'">'+(s?ITEMS[s.id].i+qt(s):'')+'</div>').join('')+'</div><div class="row">⚖️ Peso: '+weight().toFixed(1)+' kg</div></div>';
  if(cur==5)p.innerHTML='<div style="display:flex;gap:14px;align-items:center"><div id="eqg">'+[[0,'head',0],['cape','neck','ammo'],['weapon','body','shield'],['tool','legs',0],['hands','feet','ring']].flat().map(k=>k?'<div class="sl" data-e="'+k+'">'+(eq[k]?ITEMS[eq[k].id].i+qt(eq[k]):'<span style="opacity:.25">'+EI[k]+'</span>')+'</div>':'<div></div>').join('')+'</div><div style="font-size:13px;line-height:1.7">Ataque +'+bonus('atk')+'<br>Força +'+bonus('str')+'<br>Defesa +'+bonus('def')+'<br>⚖️ '+weight().toFixed(1)+' kg</div></div>';
  if(cur==6)p.innerHTML='<div style="width:100%">'+[['Preciso','Ataque'],['Agressivo','Força'],['Defensivo','Defesa'],['Controlado','Ataque, Força e Defesa']].map(([n,x],i)=>'<div class="row"><button style="width:100%;text-align:left'+(me.style==i?';background:#6b5a3c':'')+'" onclick="me.style='+i+';render()">'+n+' <small>XP: '+x+'</small></button></div>').join('')+'</div>';
@@ -1751,7 +1759,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(d<=o.range){face(pg,dx,dz,dt);if(['npc','door','exit','chest','altar','treasure','forge','cave','dexit','pet','gitem','bed'].includes(o.t)){o.t=='npc'?TALK[o.id]():USE(o);me.act=null}else{mode=o.t=='wolf'?(me.swing>0?({ranged:'bow',magic:'cast'}[me.mode]||(eq.weapon?'slash':'punch')):'guard'):{fish:'fish',tree:'chop',fire:'fish',oven:'fish',rock:'chop'}[o.t];if(me.cd<=0){me.cd=o.t=='wolf'?atkSpd()*TICK:workIv(o);doAct(o)}}}
   else{const r=step(o.x,o.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else if(r==-1){me.act=null}}}
  else if(me.target){const g=me.target,dx=g.x-me.x,dz=g.z-me.z,r=step(g.x,g.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else me.target=null}
- if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,ALT.x-me.x,ALT.z-me.z,dt);if(me.pray<=0){me.pray=0;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera seus pontos de oração.','g');mode=''}}pg.position.set(me.x,H(me.x,me.z)-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);
+ if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,ALT.x-me.x,ALT.z-me.z,dt);if(me.pray<=0){me.pray=0;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera seus pontos de oração.','g');mode=''}}pg.position.set(me.x,H(me.x,me.z)-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);if(!pg._lt||t-pg._lt>1||t<pg._lt){pg._lt=t;updCharTag()}
  for(const w of W){if(mobGuest(w,dt))continue;if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0){if(w.dead==20&&!full('osso')){give('osso');say('Ossos caem no chão.')}w.dead-=dt;if(w.dead<=0){w.hp=w.mhp;w.g.visible=true;w.x=w.hx;w.z=w.hz}continue}
   const tg=mobTarget(w),dx=tg.x-w.x,dz=tg.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
