@@ -150,7 +150,7 @@ canvas#c{width:100%;height:100%;display:block;touch-action:none}
 </svg>
 <div class="ui"><div class="logo"><svg class="crown" viewBox="0 0 120 70"><defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".6" stop-color="#f0b030"/><stop offset="1" stop-color="#9a5a0e"/></linearGradient></defs><path d="M8 62 L14 20 L38 40 L60 6 L82 40 L106 20 L112 62Z" fill="url(#gd)" stroke="#34200a" stroke-width="3" stroke-linejoin="round"/><circle cx="14" cy="18" r="5" fill="#ffd25a" stroke="#34200a" stroke-width="2"/><circle cx="60" cy="8" r="5" fill="#ffd25a" stroke="#34200a" stroke-width="2"/><circle cx="106" cy="18" r="5" fill="#ffd25a" stroke="#34200a" stroke-width="2"/><path d="M60 40 l8 10 l-8 10 l-8 -10z" fill="#3a8ae0" stroke="#10306a" stroke-width="2"/></svg><h1>ELDORIA</h1><div class="sub">Mundo Aberto</div></div>
 <div class="menu"><button class="mb main" onclick="tSingle()">▶ Single player</button><button class="mb" onclick="tMulti()">👥 Multiplayer</button></div>
-<div class="foot">Grandes aventuras te esperam<br><a id="tEdit" onclick="openCreator(null)" style="display:none">✎ Editar personagem</a></div></div></div>
+<div class="foot">Grandes aventuras te esperam<br><a id="tEdit" onclick="openCreator(null)" style="display:none">✎ Editar personagem</a><div style="opacity:.55;font-size:10px;margin-top:6px;letter-spacing:.1em">v11 · monstros compartilhados</div></div></div></div>
 <div id="mpm" class="off"><div class="box"><h2>Multiplayer</h2><p class="sm">Jogue com amigos pela internet: um cria a sala e passa o código, os outros entram com ele.</p>
 <button class="mb main" onclick="mpCreate()">Criar sala</button><div class="or">ou entre em uma sala</div><input id="mpc" type="text" maxlength="5" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="mb" onclick="mpEnter()">Entrar na sala</button>
 <div id="mpst"></div><div id="mpcode"></div><button class="mb main off" id="mpgo" onclick="tHide()">Entrar no mundo</button><button class="mb sec" onclick="mpBack()">Voltar</button>
@@ -412,12 +412,21 @@ function xpHit(d){const m=me.mode;if(m=='magic'){addXp('magic',2*d);addXp('hitpo
 const PR=[];function shoot(o,c){const m=new THREE.Mesh(new THREE.SphereGeometry(c?.14:.07,8,6),new THREE.MeshBasicMaterial({color:c?0x66ccff:0xd8c9a0}));S.add(m);PR.push({m,t:0,x0:me.x,z0:me.z,o})}
 // ===== NOVOS INIMIGOS (goblins e esqueletos) =====
 const cntK=n=>q.k[n]||0;
-function fightWolf(o){me.swing=.45;me.bt=6;drawPBar();const d=attackRoll(o);o.hp-=d;hit(o);splat(o,d);
+function fightWolf(o){me.swing=.45;me.bt=6;drawPBar();const d=attackRoll(o),gst=mobGst(o);if(gst){o.hp=Math.max(0,o.hp-d);if(d>0)mpToHost({t:'d',i:o.i,d})}else o.hp-=d;hit(o);splat(o,d);
  if(d>0){xpHit(d);say('Você acerta o '+o.nm+' ('+d+').')}else say('Você erra o golpe.');
- if(o.hp<=0)killEnemy(o)}
-function killEnemy(o){o.dead=o.rs||20;o.g.visible=false;me.act=null;addXp('combate',o.kx||14);say('Você derrotou o '+o.nm+'!','g');
- (o.drops||[]).forEach(([id,p,n])=>{if(Math.random()<p*(pet&&pet.id=='raposa'?1.5:1)&&!full(id)){give(id,n||1);say('Drop: '+ITEMS[id].n+(n>1?' x'+n:'')+'.','y')}});
- if(o.gold){pay(o.gold);say('Você ganha '+o.gold+' moedas.','g')}if(o.nm=='lobo'&&q.lobos==1)q.kills++;q.k[o.nm]=(q.k[o.nm]||0)+1;render()}
+ if(o.hp<=0){if(gst)me.act=null;else killEnemy(o)}}
+function killEnemy(o,by){const sh=mobSh(o),killer=by===undefined?(MP.id||''):by;
+ o.dead=o.rs||20;o.g.visible=false;if(!sh||me.act===o)me.act=null;
+ if(sh&&MP.host)mpSend({t:'k',i:o.i,by:killer});
+ const mine=!sh||killer===MP.id;
+ if(!mine&&Math.hypot(me.x-o.x,me.z-o.z)>45){render();return}
+ mobReward(o,mine,sh&&!MP.host)}
+function mobReward(o,mine,bones){addXp('combate',o.kx||14);say(mine?'Você derrotou o '+o.nm+'!':'O '+o.nm+' foi derrotado pelo grupo!','g');
+ if(bones&&!full('osso')){give('osso');say('Ossos caem no chão.')}
+ if(mine){(o.drops||[]).forEach(([id,p,n])=>{if(Math.random()<p*(pet&&pet.id=='raposa'?1.5:1)&&!full(id)){give(id,n||1);say('Drop: '+ITEMS[id].n+(n>1?' x'+n:'')+'.','y')}});
+  if(o.gold){pay(o.gold);say('Você ganha '+o.gold+' moedas.','g')}}
+ if(o.nm=='lobo'&&q.lobos==1)q.kills++;q.k[o.nm]=(q.k[o.nm]||0)+1;render()}
+function mobStrike(w){const n=wolfSwing(w);me.hp-=n;hit(w);splat(me,n);say(n?'O '+w.nm+' te acerta! (-'+n+')':'O '+w.nm+' erra o golpe.',n?'r':'');if(me.hp>0&&!me.act&&!me.target)startAct(w);hud();if(me.hp<=0)morrer()}
 function mkEnemy(nm,x,z,o2,build){if(x<450)[x,z]=safeSpot(x,z);const g=build(),l=label(nm[0].toUpperCase()+nm.slice(1)+' - Nível '+Math.max(1,Math.round(((o2.atk||0)+(o2.str||0)+(o2.def||0))/6+(o2.mhp||0)/6)),'#ff8080',.7);l.position.y=o2.ly||2.3;g.add(l);
  const bc=document.createElement('canvas');bc.width=128;bc.height=24;const bs=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(bc),depthTest:false,transparent:true,fog:false}));bs.scale.set(1.8,.34,1);bs.position.y=(o2.ly||2.3)+.55;bs.visible=false;g.add(bs);
  g.position.set(x,H(x,z),z);S.add(g);
@@ -1419,11 +1428,11 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   else{const r=step(o.x,o.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else if(r==-1){me.act=null}}}
  else if(me.target){const g=me.target,dx=g.x-me.x,dz=g.z-me.z,r=step(g.x,g.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else me.target=null}
  if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,ALT.x-me.x,ALT.z-me.z,dt);if(me.pray<=0){me.pray=0;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera seus pontos de oração.','g');mode=''}}pg.position.set(me.x,H(me.x,me.z)-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);
- for(const w of W){if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0){if(w.dead==20&&!full('osso')){give('osso');say('Ossos caem no chão.')}w.dead-=dt;if(w.dead<=0){w.hp=w.mhp;w.g.visible=true;w.x=w.hx;w.z=w.hz}continue}
-  const dx=me.x-w.x,dz=me.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
+ for(const w of W){if(mobGuest(w,dt))continue;if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0){if(w.dead==20&&!full('osso')){give('osso');say('Ossos caem no chão.')}w.dead-=dt;if(w.dead<=0){w.hp=w.mhp;w.g.visible=true;w.x=w.hx;w.z=w.hz}continue}
+  const tg=mobTarget(w),dx=tg.x-w.x,dz=tg.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
   if(mv){const l=Math.hypot(gx,gz);w.x+=gx/l*mv*dt;w.z+=gz/l*mv*dt;if(H(w.x,w.z)<-.2){w.x-=gx/l*mv*dt;w.z-=gz/l*mv*dt}face(w.g,gx,gz,dt)}else if(d<=14)face(w.g,dx,dz,dt);
-  w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;const n=wolfSwing(w);me.hp-=n;hit(w);splat(me,n);say(n?'O '+w.nm+' te acerta! (-'+n+')':'O '+w.nm+' erra o golpe.',n?'r':'');if(me.hp>0&&!me.act&&!me.target)startAct(w);hud();if(me.hp<=0)morrer()}
+  w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;if(tg.r){const c=MP.conns[tg.r];try{if(c&&c.open)c.send({t:'a',i:w.i})}catch(e){}}else mobStrike(w)}
   w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));const s=Math.sin(t*10)*.6*(mv?1:0);w.lg.forEach((l,i)=>l.rotation.x=(i%3?-s:s))}
  for(let i=SP.length-1;i>=0;i--){const p=SP[i];p.t-=dt;p.s.position.y=p.y+(1-p.t)*.6;p.s.material.opacity=Math.min(1,p.t*2);if(p.t<=0){S.remove(p.s);SP.splice(i,1)}}
  for(const k in NPC){const n=NPC[k],dx=me.x-n.x,dz=me.z-n.z;if(dx*dx+dz*dz<120)face(n.g,dx,dz,dt);pose(n.g,t+k.length*2,'')}
@@ -1572,20 +1581,43 @@ function mpConn(c){c.on('open',()=>{MP.conns[c.peer]=c;c.send({t:'hi',id:MP.id,n
 function mpData(m,c){if(!m||typeof m!='object')return;
  if(m.t=='hi'){if(m.id===MP.id||MP.pl[m.id])return;mpAdd(m.id,String(m.name||'Viajante').slice(0,12),m.ap,c.peer);if(MP.host)mpSend(m,c.peer)}
  else if(m.t=='p'){const r=MP.pl[m.id];if(r){r.tx=+m.x||0;r.tz=+m.z||0;r.in=m.in?1:0;if(!r.seen){r.seen=1;r.x=r.tx;r.z=r.tz}}if(MP.host)mpSend(m,c.peer)}
+ else if(m.t=='m'){if(!MP.host)mobApply(m)}
+ else if(m.t=='k'){if(!MP.host){const w=W[m.i];if(w&&w.hx<450)killEnemy(w,String(m.by))}}
+ else if(m.t=='a'){if(!MP.host&&!me.in&&!me.dun&&!me.jail){const w=W[m.i];if(w&&!(w.dead>0)&&Math.hypot(me.x-w.x,me.z-w.z)<6){w.ln=.3;mobStrike(w)}}}
+ else if(m.t=='d'){if(MP.host){const w=W[m.i],d=Math.max(0,Math.min(60,+m.d||0));if(w&&w.hx<450&&!(w.dead>0)&&d>0){w.hp-=d;hit(w);splat(w,d);if(w.hp<=0)killEnemy(w,c.peer)}}}
  else if(m.t=='c'){const r=MP.pl[m.id],t=chClean(m.txt),now=performance.now();if(r&&t&&now-(r.ct||0)>400){r.ct=now;chShow(r.name,t,r.g,0)}if(MP.host)mpSend({t:'c',id:m.id,txt:t},c.peer)}
  else if(m.t=='bye'){mpDrop(m.id)}}
 function mpAdd(id,name,ap,via){const a=Object.assign(defChar(ap&&ap.gen),ap||{});const g=mkChar(a);const l=label(name,'#9be37a',.8);l.position.y=2.4;g.add(l);g.visible=false;g.sw=0;S.add(g);MP.pl[id]={g,name,ap:a,via,x:0,z:0,tx:0,tz:0,in:0,seen:0,t:0};say('👥 '+name+' entrou no reino!','g');mpBadge()}
 function mpDrop(id){const r=MP.pl[id];if(!r)return;S.remove(r.g);delete MP.pl[id];say('👥 '+r.name+' saiu do reino.','y');mpBadge()}
+
+// ===== v11: MONSTROS COMPARTILHADOS (o anfitrião da sala controla os monstros do mundo) =====
+const mobSh=o=>!!(MP.peer&&MP.id&&o.hx<450&&o.i!=null);
+const mobGst=o=>mobSh(o)&&!MP.host;
+function mpToHost(m){for(const k in MP.conns){try{const c=MP.conns[k];if(c.open)c.send(m)}catch(e){}}}
+function mobIdx(){W.forEach((w,i)=>w.i=i);MP.nw=W.length}
+function mobTarget(w){const T={x:me.x,z:me.z,r:null};if(!(MP.peer&&MP.id&&MP.host)||w.hx>=450)return T;
+ let bd=me.in?1e9:Math.hypot(me.x-w.x,me.z-w.z);
+ for(const k in MP.pl){const r=MP.pl[k];if(!r.seen||r.in)continue;const d=Math.hypot(r.x-w.x,r.z-w.z);if(d<bd){bd=d;T.x=r.x;T.z=r.z;T.r=k}}return T}
+function mobGuest(w,dt){if(!(MP.peer&&MP.id&&!MP.host&&w.hx<450&&w.i!=null))return 0;
+ if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0)return 1;let mv=0;
+ if(w.tx!=null){const dx=w.tx-w.x,dz=w.tz-w.z,d=Math.hypot(dx,dz);if(d>30){w.x=w.tx;w.z=w.tz}else{const k=Math.min(1,dt*8);w.x+=dx*k;w.z+=dz*k}if(d>.12){mv=1;face(w.g,dx,dz,dt)}}
+ w.ln=Math.max(0,(w.ln||0)-dt);const l2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+l2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+l2*Math.cos(w.g.rotation.y));
+ const sv=Math.sin(performance.now()/100)*.6*mv;w.lg.forEach((l,i)=>l.rotation.x=(i%3?-sv:sv));return 1}
+function mobSnap(){const a=[];for(const w of W){if(w.i==null||w.hx>=450)continue;a.push([w.i,Math.round(w.x*10)/10,Math.round(w.z*10)/10,w.hp,w.dead>0?1:0])}return{t:'m',a}}
+function mobApply(m){if(!Array.isArray(m.a))return;for(const e of m.a){const w=W[e[0]];if(!w||w.hx>=450)continue;const hp=+e[3]||0;
+ if(hp!==w.hp){const dec=hp<w.hp;w.hp=hp;if(dec||hp<w.mhp)hit(w)}
+ if(e[4]){if(!(w.dead>0)){w.dead=1;w.g.visible=false;if(me.act===w)me.act=null}}
+ else{if(w.dead>0){w.dead=0;w.g.visible=true;w.x=+e[1];w.z=+e[2]}w.tx=+e[1];w.tz=+e[2]}}}
 
 function chClean(t){return String(t==null?'':t).replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,80)}
 function chOpen(){if(!MP.peer||!MP.id)return;const b=$('#cbar'),i=$('#cin');b.classList.remove('off');if(!i._k){i._k=1;['keydown','keyup'].forEach(k=>i.addEventListener(k,e=>{e.stopPropagation();if(k=='keydown'&&e.key=='Enter'){e.preventDefault();chSend()}}))}i.value='';i.focus()}
 function chClose(){$('#cbar').classList.add('off');$('#cin').blur()}
 function chShow(nm,t,g,mine){say('💬 '+nm+': '+t,mine?'g':'');bubble(g,t,clamp(3+t.length*.05,3.5,8))}
 function chSend(){const t=chClean($('#cin').value);chClose();if(!t||!MP.peer||!MP.id)return;const nm=(CH&&CH.name)||'Viajante';mpSend({t:'c',id:MP.id,txt:t});chShow(nm,t,pg,1)}
-function mpTick(dt,mode){if(!MP.peer||!MP.id)return;MP.acc+=dt;if(MP.acc>.12){MP.acc=0;mpSend({t:'p',id:MP.id,x:+me.x.toFixed(2),z:+me.z.toFixed(2),in:me.in?1:0})}
+function mpTick(dt,mode){if(!MP.peer||!MP.id)return;if(MP.nw!==W.length)mobIdx();MP.sa=(MP.sa||0)+dt;if(MP.host&&MP.sa>.12&&Object.keys(MP.conns).length){MP.sa=0;mpSend(mobSnap())}MP.acc+=dt;if(MP.acc>.12){MP.acc=0;mpSend({t:'p',id:MP.id,x:+me.x.toFixed(2),z:+me.z.toFixed(2),in:me.in?1:0})}
  for(const k in MP.pl){const r=MP.pl[k];if(!r.seen)continue;const dx=r.tx-r.x,dz=r.tz-r.z,d=Math.hypot(dx,dz);if(d>25){r.x=r.tx;r.z=r.tz}else{const s=Math.min(1,dt*8);r.x+=dx*s;r.z+=dz*s}
   const mv=d>.15;r.g.visible=!r.in&&!me.in;r.g.position.set(r.x,H(r.x,r.z),r.z);if(mv)face(r.g,dx,dz,dt);r.t+=dt;pose(r.g,r.t,mv?'walk':'')}}
-function bootUI(){tFit();if(CH){const e=$('#tEdit');if(e)e.style.display='inline'}
+function bootUI(){tFit();mobIdx();if(CH){const e=$('#tEdit');if(e)e.style.display='inline'}
  if(GO=='single'||GO=='mp')$('#title').classList.add('off');if(GO=='mp'){mpMenu()}}
 
 resize();hud();render();loop();bootUI();
