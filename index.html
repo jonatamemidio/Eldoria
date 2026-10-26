@@ -473,6 +473,33 @@ function mkBridge(ia,ib){
 mkBridge(0,2);
 BY=(x,z)=>{for(const b of BRG){const rx=x-b.x,rz=z-b.z,s=rx*b.sn+rz*b.cs;if(s<0||s>b.L)continue;const u=rx*b.cs-rz*b.sn;if(Math.abs(u)>2.4)continue;const k=clamp(Math.min(s,b.L-s)/1.5,0,1),y=b.Y(s);return k>=1?y:H0(x,z)*(1-k)+y*k}return null};
 H=function(x,z){const b=BY(x,z);return b==null?H0(x,z):b};
+// Altura do terreno conforme a própria malha renderizada. A função H() calcula
+// uma superfície analítica contínua, mas a malha é formada por triângulos; entre
+// vértices, as duas alturas podem divergir. Esta função interpola o triângulo
+// realmente usado pelo índice atual do terreno, sem raycast por quadro.
+function terrainMeshHeight(x,z){
+ const p=G.attributes.position;
+ // Fora dos limites da malha não há triângulo do terreno para consultar.
+ if(!Number.isFinite(x)||!Number.isFinite(z)||x < -400||x > 400||z < -400||z > 400)return H0(x,z);
+ // A malha real sempre tem 160 segmentos; QP[QI].tk controla outros detalhes
+ // gráficos e não altera os triângulos de G. Usar passo 2 aqui diverge da malha.
+ const stride=1, cells=160, width=161, spacing=5;
+ const gx=clamp((x+400)/spacing,0,cells), gz=clamp((z+400)/spacing,0,cells);
+ const ix=Math.min(cells-1,Math.floor(gx));
+ const iz=Math.min(cells-1,Math.floor(gz));
+ const u=clamp(gx-ix,0,1), v=clamp(gz-iz,0,1);
+ const a=iz*width+ix, b=(iz+1)*width+ix, c=(iz+1)*width+ix+1, d=iz*width+ix+1;
+ const ha=p.getY(a), hb=p.getY(b), hc=p.getY(c), hd=p.getY(d);
+ // O índice do terreno usa os triângulos (A,B,D) e (B,C,D).
+ if(u+v<=1)return ha*(1-u-v)+hb*v+hd*u;
+ return hb*(1-u)+hc*(u+v-1)+hd*(1-v);
+}
+function walkSurfaceHeight(x,z){
+ // Preserva a regra de altura já existente nas pontes; esta etapa corrige
+ // apenas a discrepância entre a função analítica e a malha do terreno.
+ if(BY(x,z)!=null)return H(x,z);
+ return terrainMeshHeight(x,z);
+}
 function GHIT(){return (me.jail||me.dun||me.in?ray.intersectObject(me.jail?jfl:(me.dun?dfl:fl)):ray.intersectObjects([ground,...BRM]))[0]}
 function label(t,c,sz){const k=document.createElement('canvas');k.width=256;k.height=64;const x=k.getContext('2d');x.font='bold '+Math.min(30,Math.floor(250/(t.length*.56)))+'px sans-serif';x.textAlign='center';x.lineWidth=6;x.strokeStyle='#000';x.strokeText(t,128,44);x.fillStyle=c;x.fillText(t,128,44);
  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(k),depthTest:false,transparent:true,fog:false}));s.scale.set(sz*4,sz,1);return s}
@@ -2490,6 +2517,9 @@ function toggleDoor(o){
   const hg=o.hg,cx=hg.position.x,cz=hg.position.z;
   let dx=cx-o.x,dz=cz-o.z;const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
   const inside=Math.hypot(me.x-cx,me.z-cz)<L;
+  // Registra se esta abertura foi feita para sair. A referência de altura
+  // da casa só deve continuar ativa até o personagem cruzar para o exterior.
+  me.rsDoorExit=inside;
   const dist=inside?-3.2:Math.min(3.6,L*.7+1.2);
   me.target={x:o.x+dx*dist,z:o.z+dz*dist};me.act=null;
  }
@@ -3362,7 +3392,21 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(d<=o.range){face(pg,dx,dz,dt);if(['npc','door','exit','chest','altar','treasure','forge','cave','dexit','pet','gitem','bed'].includes(o.t)){o.t=='npc'?TALK[o.id]():USE(o);me.act=null}else{mode=o.t=='wolf'?(me.swing>0?({ranged:'bow',magic:'cast'}[me.mode]||(eq.weapon?'slash':'punch')):'guard'):{fish:'fish',tree:'chop',fire:'fish',oven:'fish',rock:'chop'}[o.t];if(me.cd<=0){me.cd=o.t=='wolf'?atkSpd()*TICK:workIv(o);doAct(o)}}}
   else{const r=step(o.x,o.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else if(r==-1){me.act=null}}}
  else if(me.target){const g=me.target,dx=g.x-me.x,dz=g.z-me.z,r=step(g.x,g.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else me.target=null}
- if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,ALT.x-me.x,ALT.z-me.z,dt);if(me.pray<=0){me.pray=0;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera seus pontos de oração.','g');mode=''}}pg.position.set(me.x,(me.rsDoor&&me.rsDoor.hg?me.rsDoor.hg.position.y:H(me.x,me.z))-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);if(!pg._lt||t-pg._lt>1||t<pg._lt){pg._lt=t;updCharTag()}
+ if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,ALT.x-me.x,ALT.z-me.z,dt);if(me.pray<=0){me.pray=0;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera seus pontos de oração.','g');mode=''}}
+ // A altura da casa só vale enquanto o personagem realmente está dentro
+ // do retângulo dela. Não dependemos de rsDoorExit, pois essa flag pode não
+ // ser marcada em algumas portas/posições.
+ let houseFloor=null;
+ if(me.rsDoor&&me.rsDoor.hg){
+  const hg=me.rsDoor.hg,W=hg.userData.W||11,D=hg.userData.D||10;
+  const lx=me.x-hg.position.x,lz=me.z-hg.position.z;
+  if(Math.abs(lx)<=W/2&&Math.abs(lz)<=D/2){houseFloor=hg.position.y;}
+  else{me.rsDoor=null;me.rsDoorExit=false;}
+ }
+ // Fora das casas, use exatamente a mesma função de altura dos animais:
+ // H(x,z). Isso mantém personagem e criaturas sobre a mesma superfície.
+ const playerGround=houseFloor!=null?houseFloor:H(me.x,me.z);
+ pg.position.set(me.x,playerGround-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);if(!pg._lt||t-pg._lt>1||t<pg._lt){pg._lt=t;updCharTag()}
  for(const w of W){if(mobGuest(w,dt))continue;if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0){if(w.dead==20&&!full('osso')){give('osso');say('Ossos caem no chão.')}w.dead-=dt;if(w.dead<=0){w.hp=w.mhp;w.g.visible=true;w.x=w.hx;w.z=w.hz}continue}
   const tg=mobTarget(w),dx=tg.x-w.x,dz=tg.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
