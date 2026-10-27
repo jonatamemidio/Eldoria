@@ -3398,19 +3398,25 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   else{const r=step(o.x,o.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else if(r==-1){me.act=null}}}
  else if(me.target){const g=me.target,dx=g.x-me.x,dz=g.z-me.z,r=step(g.x,g.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else me.target=null}
  if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,ALT.x-me.x,ALT.z-me.z,dt);if(me.pray<=0){me.pray=0;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera seus pontos de oração.','g');mode=''}}
- // A altura da casa só vale enquanto o personagem realmente está dentro
- // do retângulo dela. Não dependemos de rsDoorExit, pois essa flag pode não
- // ser marcada em algumas portas/posições.
+ // A altura do piso interno só deve ser usada enquanto o personagem
+ // estiver dentro do prédio. As construções podem estar rotacionadas; por isso
+ // convertemos a posição do jogador para o sistema local da construção antes
+ // de testar os limites. O teste antigo em coordenadas globais deixava a casa
+ // ativa após sair por portas de prédios rotacionados.
  let houseFloor=null;
  if(me.rsDoor&&me.rsDoor.hg){
   const hg=me.rsDoor.hg,W=hg.userData.W||11,D=hg.userData.D||10;
-  const lx=me.x-hg.position.x,lz=me.z-hg.position.z;
-  if(Math.abs(lx)<=W/2&&Math.abs(lz)<=D/2){houseFloor=hg.position.y;}
+  const dx=me.x-hg.position.x,dz=me.z-hg.position.z,ang=hg.rotation.y||0;
+  const lx=dx*Math.cos(ang)-dz*Math.sin(ang);
+  const lz=dx*Math.sin(ang)+dz*Math.cos(ang);
+  // Margem interna: ao atravessar a parede/porta, abandona imediatamente
+  // o piso da casa e volta a seguir a altura do terreno exterior.
+  const inside=Math.abs(lx)<W/2-.12 && Math.abs(lz)<D/2-.12;
+  if(inside)houseFloor=hg.position.y;
   else{me.rsDoor=null;me.rsDoorExit=false;}
  }
- // Fora das casas, use exatamente a mesma função de altura dos animais:
- // H(x,z). Isso mantém personagem e criaturas sobre a mesma superfície.
- const playerGround=houseFloor!=null?houseFloor:H(me.x,me.z);
+ // Exterior: mesma função de altura usada pelos animais, pontes incluídas.
+ const playerGround=houseFloor!==null?houseFloor:H(me.x,me.z);
  pg.position.set(me.x,playerGround-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);if(!pg._lt||t-pg._lt>1||t<pg._lt){pg._lt=t;updCharTag()}
  for(const w of W){if(mobGuest(w,dt))continue;if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0){if(w.dead==20&&!full('osso')){give('osso');say('Ossos caem no chão.')}w.dead-=dt;if(w.dead<=0){w.hp=w.mhp;w.g.visible=true;w.x=w.hx;w.z=w.hz}continue}
   const tg=mobTarget(w),dx=tg.x-w.x,dz=tg.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
