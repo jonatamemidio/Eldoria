@@ -2281,6 +2281,24 @@ const ALT={t:'altar',x:INX,z:INZ-3.9,range:3.2,g:null};
    for(let x=x0+.55+(Math.floor(y/.72)%2)*.48;x<x1-.2;x+=1.05){const seam=add(new THREE.BoxGeometry(.025,.68,.025),joint,x,y+.34,hd+.185,g);seam.userData.churchDetail=1;}
   }
  }
+ // Fundo da igreja: aplicar o mesmo desenho de blocos que existe nas laterais.
+ // Juntas desenhadas na face exterior da parede traseira (-Z).
+ for(let y=.55;y<5.35;y+=.72){
+  const backLine=add(new THREE.BoxGeometry(W-.45,.035,.025),joint,0,y,-hd-.185,g);backLine.userData.churchDetail=1;
+  const offset=(Math.floor(y/.72)%2)*.52;
+  for(let bx=-hw+.45+offset;bx<hw-.25;bx+=1.15){
+   const backSeam=add(new THREE.BoxGeometry(.025,.66,.025),joint,bx,y+.33,-hd-.185,g);backSeam.userData.churchDetail=1;
+  }
+ }
+ // Alvenaria acima da porta: juntas de blocos discretas para preencher a faixa
+ // entre o portal e a empena, sem criar janela ou vão transparente.
+ for(let y=3.92;y<5.48;y+=.48){
+  const frontLine=add(new THREE.BoxGeometry(3.62,.028,.025),joint,0,y,hd+.185,g);frontLine.userData.churchDetail=1;
+  const offset=(Math.floor(y/.48)%2)*.42;
+  for(let bx=-1.72+offset;bx<1.72;bx+=.86){
+   const frontSeam=add(new THREE.BoxGeometry(.025,.43,.025),joint,bx,y+.215,hd+.185,g);frontSeam.userData.churchDetail=1;
+  }
+ }
  // Laterais: fiadas e juntas verticais interrompidas visualmente pelos vitrais.
  for(const side of [-1,1]){
   for(let y=.55;y<5.35;y+=.72){
@@ -2300,19 +2318,19 @@ const ALT={t:'altar',x:INX,z:INZ-3.9,range:3.2,g:null};
  // O clique continua funcionando pela caixa invisível doorPick, sem precisar abrir a malha.
  [-1,1].forEach(side=>{
   const leafX=side*.94,leafZ=hd-.39;
-  const leaf=add(new THREE.BoxGeometry(1.86,3.15,.18),doorWood,leafX,1.58,leafZ,g);leaf.userData.churchDoorLeaf=1;
+  const leaf=add(new THREE.BoxGeometry(1.86,3.4,.18),doorWood,leafX,1.7,leafZ,g);leaf.userData.churchDoorLeaf=1;
   // Travessas e painéis em relevo, acompanhando cada folha fechada.
-  for(let y=.48;y<2.9;y+=.58)add(new THREE.BoxGeometry(1.68,.07,.035),darkWood,leafX,y,leafZ+.105,g);
-  add(new THREE.BoxGeometry(.075,2.45,.045),darkWood,leafX,1.58,leafZ+.11,g);
-  add(new THREE.SphereGeometry(.065,8,6),trim,side*.16,1.48,leafZ+.13,g);
+  for(let y=.60;y<3.02;y+=.58)add(new THREE.BoxGeometry(1.68,.07,.035),darkWood,leafX,y,leafZ+.105,g);
+  add(new THREE.BoxGeometry(.075,2.62,.045),darkWood,leafX,1.7,leafZ+.11,g);
+  add(new THREE.SphereGeometry(.065,8,6),trim,side*.16,1.6,leafZ+.13,g);
   // Tábuas verticais e travessa diagonal em cada folha para dar relevo à madeira.
-  [-.62,-.22,.22,.62].forEach(dx=>add(new THREE.BoxGeometry(.035,2.55,.035),darkWood,leafX+dx,1.58,leafZ+.105,g));
-  const brace=add(new THREE.BoxGeometry(1.45,.075,.045),darkWood,leafX,1.55,leafZ+.13,g);brace.rotation.z=side*.48;
-  [-.72,.72].forEach(dx=>add(new THREE.BoxGeometry(.07,.13,.05),trim,leafX+dx,1.55,leafZ+.15,g));
+  [-.62,-.22,.22,.62].forEach(dx=>add(new THREE.BoxGeometry(.035,2.75,.035),darkWood,leafX+dx,1.7,leafZ+.105,g));
+  const brace=add(new THREE.BoxGeometry(1.45,.075,.045),darkWood,leafX,1.67,leafZ+.13,g);brace.rotation.z=side*.48;
+  [-.72,.72].forEach(dx=>add(new THREE.BoxGeometry(.07,.13,.05),trim,leafX+dx,1.67,leafZ+.15,g));
  });
  // Arco de entrada em blocos low-poly, sem peça atravessando o vão.
- [-2.03,2.03].forEach(x=>{add(new THREE.BoxGeometry(.3,3.55,.38),trim,x,1.78,hd-.03,g);add(new THREE.BoxGeometry(.48,.22,.48),trim,x,3.56,hd-.03,g)});
- add(new THREE.BoxGeometry(3.95,.28,.42),trim,0,3.62,hd-.03,g);
+ [-2.03,2.03].forEach(x=>{add(new THREE.BoxGeometry(.3,3.45,.38),trim,x,1.72,hd-.03,g);add(new THREE.BoxGeometry(.48,.22,.48),trim,x,3.48,hd-.03,g)});
+ add(new THREE.BoxGeometry(3.95,.28,.42),trim,0,3.48,hd-.03,g);
  // Inclinação e meia largura do telhado são declaradas antes de calcular a empena.
  // Isso evita o erro temporal de inicialização (half antes do const half).
  const pitch=.48,half=hw+.18,span=half/Math.cos(pitch);
@@ -2321,28 +2339,95 @@ const ALT={t:'altar',x:INX,z:INZ-3.9,range:3.2,g:null};
  const rise=half*Math.tan(pitch),shape=new THREE.Shape();shape.moveTo(-hw,0);shape.lineTo(hw,0);shape.lineTo(0,rise);shape.lineTo(-hw,0);
  // Empenas nas duas extremidades; a frontal fecha o vão sob o telhado.
  [-hd-.30,hd].forEach(zz=>{const m=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:.3,bevelEnabled:false}),stone);m.position.set(0,5.6,zz);m.userData.churchWall=1;g.add(m)});
- // Telhado de duas águas simples, com telhas vermelhas. O comprimento cobre
- // toda a nave até à fachada frontal; a empena frontal fica visível e limpa.
- const roofLength=D+.72,roofCenterZ=0,roofBaseY=5.6;
- const roofFrontZ=hd+.36;
+ // Telhado de duas águas com estrutura de madeira e telhas de barro individuais.
+ // A cobertura acompanha as empenas e termina antes da cruz da fachada.
+ const roofLength=D+.24,roofCenterZ=0,roofBaseY=5.6;
+ const roofFrontZ=hd+.12;
+ const slopeY=roofBaseY+half*Math.tan(pitch)/2;
+ const timber=new THREE.MeshStandardMaterial({color:0x493024,roughness:.94});
+ const ridgeMat=new THREE.MeshStandardMaterial({color:0x713727,roughness:.94});
  [-1,1].forEach(side=>{
-  roofPiece(new THREE.BoxGeometry(span,.34,roofLength),roof,side*half/2,roofBaseY+half*Math.tan(pitch)/2,roofCenterZ,-side*pitch);
+  // Base sólida da água e beiral de madeira.
+  roofPiece(new THREE.BoxGeometry(span,.24,roofLength),roof,side*half/2,slopeY,roofCenterZ,-side*pitch);
+  roofPiece(new THREE.BoxGeometry(.2,.24,roofLength+.18),darkRoof,side*half,roofBaseY-.04,roofCenterZ,-side*pitch);
+  // Testeiras nas extremidades da nave.
+  [-1,1].forEach(end=>{
+   roofPiece(new THREE.BoxGeometry(span,.16,.18),darkRoof,side*half/2,slopeY,end*(roofLength/2),-side*pitch);
+  });
+  // Caibros aparentes sob o beiral, com espaçamento regular.
+  for(let rz=-roofLength/2+.35;rz<roofLength/2;rz+=1.25){
+   const rafter=roofPiece(new THREE.BoxGeometry(span+.08,.12,.13),timber,side*half/2,slopeY-.14,rz,-side*pitch);
+   rafter.userData.churchDetail=1;
+  }
+  // Rincões de madeira acompanhando a inclinação das bordas do telhado.
+  [-1,1].forEach(end=>{
+   const rake=roofPiece(new THREE.BoxGeometry(half/Math.cos(pitch),.18,.16),timber,side*half/2,roofBaseY+half*Math.tan(pitch)/2,end*(roofLength/2),-side*pitch);
+   rake.userData.churchDetail=1;
+  });
  });
- // Cumeeira acompanha toda a nave, sem extensão sobre a empena.
- roofPiece(new THREE.BoxGeometry(.30,.20,roofLength),darkRoof,0,roofBaseY+half*Math.tan(pitch),roofCenterZ,0);
- // Telhas low-poly em fileiras sobre as duas águas.
- const tileMat=[roof,darkRoof,new THREE.MeshStandardMaterial({color:0x8b4030,roughness:1})];
+ // Cumeeira em segmentos hexagonais sobrepostos, com remates nas pontas.
+ for(let rz=-roofLength/2+.42;rz<roofLength/2;rz+=.78){
+  const cap=add(new THREE.CylinderGeometry(.17,.17,.84,6,1,false),ridgeMat,0,roofBaseY+half*Math.tan(pitch)+.035,rz,g);
+  cap.rotation.x=Math.PI/2;cap.userData.churchRoof=1;
+ }
+ // Telhas individuais de barro em fiadas intercaladas, com borda levantada para
+ // sugerir encaixe e sobreposição (sem textura plana repetida).
+ const tileMat=[
+  new THREE.MeshStandardMaterial({color:0x9b4935,roughness:.97}),
+  new THREE.MeshStandardMaterial({color:0x8c3f2e,roughness:.98}),
+  new THREE.MeshStandardMaterial({color:0xa6533d,roughness:.96}),
+  new THREE.MeshStandardMaterial({color:0x783727,roughness:.98}),
+  new THREE.MeshStandardMaterial({color:0xa04a34,roughness:.97}),
+  new THREE.MeshStandardMaterial({color:0x91412f,roughness:.98}),
+  new THREE.MeshStandardMaterial({color:0xb15c43,roughness:.97})
+ ];
+ const tileLipMat=new THREE.MeshStandardMaterial({color:0x6f3528,roughness:.98});
  [-1,1].forEach(side=>{
-  for(let row=0;row<7;row++){
-   const dist=.52+row*.67,px=side*dist,py=roofBaseY+(half-dist)*Math.tan(pitch)+.035;
-   for(let col=0;col<17;col++){
-    const zz=-7.25+col*.88+(row%2)*.42;
-    if(zz>roofFrontZ-.25)continue;
-    const tile=add(new THREE.BoxGeometry(.66,.065,.76),tileMat[(row+col)%tileMat.length],px,py,zz,g);
-    tile.rotation.z=-side*pitch;tile.userData.churchRoof=1;
+  for(let row=0;row<11;row++){
+   const dist=.24+row*.49,px=side*dist,py=roofBaseY+(half-dist)*Math.tan(pitch)+.085;
+   for(let col=0;col<22;col++){
+    const zz=-7.18+col*.68+(row%2)*.34;
+    if(zz>roofFrontZ-.22||zz< -hd-.22)continue;
+    const tg=new THREE.Group();tg.position.set(px,py,zz);tg.rotation.z=-side*pitch;g.add(tg);
+    const tile= new THREE.Mesh(new THREE.BoxGeometry(.59,.075,.74),tileMat[(row*5+col*3)%tileMat.length]);
+    tile.position.y=.018;tile.castShadow=true;tile.receiveShadow=true;tg.add(tile);
+    // Pequeno ressalto na ponta inferior de cada telha: acabamento de telha encaixada.
+    const lip=new THREE.Mesh(new THREE.BoxGeometry(.055,.035,.72),tileLipMat);
+    lip.position.set(side*.265,.055,0);lip.castShadow=true;tg.add(lip);
+    tg.userData.churchRoof=1;
    }
   }
  });
+ // Tábuas de beiral mais legíveis e pontas de caibro expostas sob a cobertura.
+ [-1,1].forEach(side=>{
+  const fascia=roofPiece(new THREE.BoxGeometry(.24,.22,roofLength+.22),timber,side*(half+.03),roofBaseY-.08,roofCenterZ,-side*pitch);
+  fascia.userData.churchDetail=1;
+  for(let rz=-roofLength/2+.35;rz<roofLength/2;rz+=1.25){
+   const endBlock=roofPiece(new THREE.BoxGeometry(.18,.16,.20),trim,side*(half+.08),roofBaseY-.19,rz,-side*pitch);
+   endBlock.userData.churchDetail=1;
+  }
+ });
+ // Remate frontal de madeira sob a borda inclinada das duas águas.
+ [-1,1].forEach(end=>[-1,1].forEach(side=>{
+  const board=roofPiece(new THREE.BoxGeometry(span+.12,.16,.20),timber,side*half/2,slopeY-.13,end*(roofLength/2+.02),-side*pitch);
+  board.userData.churchDetail=1;
+ }));
+ // Remates discretos nas duas extremidades da cumeeira.
+ [-1,1].forEach(end=>{
+  const cap=add(new THREE.SphereGeometry(.16,6,5),ridgeMat,0,roofBaseY+half*Math.tan(pitch)+.06,end*(roofLength/2-.12),g);
+  cap.userData.churchRoof=1;
+ });
+ // Fiadas de blocos na empena frontal triangular. As linhas acompanham a
+ // largura disponível sob as águas, evitando um grande painel liso.
+ const gableJoint=new THREE.MeshStandardMaterial({color:0x302e29,roughness:1});
+ for(let gy=5.88;gy<5.6+rise-.12;gy+=.48){
+  const halfAtY=Math.max(.12,hw-(gy-5.6)/Math.tan(pitch));
+  const line=add(new THREE.BoxGeometry(Math.max(.18,halfAtY*2-.12),.028,.025),gableJoint,0,gy,hd+.315,g);line.userData.churchDetail=1;
+  const offset=(Math.floor(gy/.48)%2)*.42;
+  for(let gx=-halfAtY+.3+offset;gx<halfAtY-.15;gx+=.86){
+   const seam=add(new THREE.BoxGeometry(.025,.43,.025),gableJoint,gx,gy+.215,hd+.315,g);seam.userData.churchDetail=1;
+  }
+ }
  // Cruz de pedra na empena frontal, centralizada acima da porta dupla.
  // A cruz está na fachada (+Z), sem campanário, relógio ou peças de telhado por trás.
  const crossMat=new THREE.MeshStandardMaterial({color:0x766b5a,roughness:.94});
