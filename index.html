@@ -479,27 +479,32 @@ H=function(x,z){const b=BY(x,z);return b==null?H0(x,z):b};
 // realmente usado pelo índice atual do terreno, sem raycast por quadro.
 function terrainMeshHeight(x,z){
  const p=G.attributes.position;
- // Fora dos limites da malha não há triângulo do terreno para consultar.
+ // Fora dos limites da malha, mantém a altura analítica original.
  if(!Number.isFinite(x)||!Number.isFinite(z)||x < -400||x > 400||z < -400||z > 400)return H0(x,z);
- // A malha real sempre tem 160 segmentos; QP[QI].tk controla outros detalhes
- // gráficos e não altera os triângulos de G. Usar passo 2 aqui diverge da malha.
- const stride=1, cells=160, width=161, spacing=5;
+ // A qualidade gráfica troca o índice da malha entre passo 1 e passo 2.
+ // A altura de colisão precisa interpolar exatamente o triângulo renderizado.
+ const stride=Math.max(1,QP[QI]&&QP[QI].tk||1), cells=160, width=161, spacing=5;
  const gx=clamp((x+400)/spacing,0,cells), gz=clamp((z+400)/spacing,0,cells);
- const ix=Math.min(cells-1,Math.floor(gx));
- const iz=Math.min(cells-1,Math.floor(gz));
- const u=clamp(gx-ix,0,1), v=clamp(gz-iz,0,1);
- const a=iz*width+ix, b=(iz+1)*width+ix, c=(iz+1)*width+ix+1, d=iz*width+ix+1;
+ const ix=Math.min(cells-stride,Math.floor(gx/stride)*stride);
+ const iz=Math.min(cells-stride,Math.floor(gz/stride)*stride);
+ const u=clamp((gx-ix)/stride,0,1), v=clamp((gz-iz)/stride,0,1);
+ const a=iz*width+ix, b=(iz+stride)*width+ix, c=(iz+stride)*width+ix+stride, d=iz*width+ix+stride;
  const ha=p.getY(a), hb=p.getY(b), hc=p.getY(c), hd=p.getY(d);
- // O índice do terreno usa os triângulos (A,B,D) e (B,C,D).
+ // Mesmo padrão de triângulos usado por gIdx(): (A,B,D) e (B,C,D).
  if(u+v<=1)return ha*(1-u-v)+hb*v+hd*u;
  return hb*(1-u)+hc*(u+v-1)+hd*(1-v);
 }
 function walkSurfaceHeight(x,z){
- // Preserva a regra de altura já existente nas pontes; esta etapa corrige
- // apenas a discrepância entre a função analítica e a malha do terreno.
- if(BY(x,z)!=null)return H(x,z);
- return terrainMeshHeight(x,z);
+ const bridge=BY(x,z);
+ return bridge!=null?bridge:terrainMeshHeight(x,z);
 }
+// Unifica a altura de referência do jogo com o chão que o jogador realmente vê.
+// Tudo que usa H(x,z) após este ponto (personagem, animais, NPCs e construções)
+// passa a acompanhar os triângulos atuais da malha, inclusive em qualidade baixa.
+H=function(x,z){
+ const bridge=BY(x,z);
+ return bridge!=null?bridge:terrainMeshHeight(x,z);
+};
 function GHIT(){return (me.jail||me.dun||me.in?ray.intersectObject(me.jail?jfl:(me.dun?dfl:fl)):ray.intersectObjects([ground,...BRM]))[0]}
 function label(t,c,sz){const k=document.createElement('canvas');k.width=256;k.height=64;const x=k.getContext('2d');x.font='bold '+Math.min(30,Math.floor(250/(t.length*.56)))+'px sans-serif';x.textAlign='center';x.lineWidth=6;x.strokeStyle='#000';x.strokeText(t,128,44);x.fillStyle=c;x.fillText(t,128,44);
  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(k),depthTest:false,transparent:true,fog:false}));s.scale.set(sz*4,sz,1);return s}
