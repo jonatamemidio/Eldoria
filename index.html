@@ -144,7 +144,7 @@ canvas#c{width:100%;height:100%;display:block;touch-action:none}
         show('A biblioteca Three.js não foi carregada. Pode haver falha de internet, bloqueio do CDN ou abertura offline.');
       } else {
         var c=document.getElementById('c');
-        if(c && !c.getContext('webgl') && !c.getContext('experimental-webgl')){
+        if(c && !c.getContext('webgl2') && !c.getContext('webgl') && !c.getContext('experimental-webgl')){
           show('Este navegador não conseguiu criar um contexto WebGL. Atualize o navegador e teste em outro dispositivo/navegador compatível.');
         }
       }
@@ -2253,16 +2253,41 @@ const ALT={t:'altar',x:INX,z:INZ-3.9,range:3.2,g:null};
 // ===== IGREJA DE VILA REAL — RECONSTRUÇÃO AMPLIADA =====
 {const[x,z]=offRoad(5.7,21.3,11),g=new THREE.Group();g.position.set(x,H(x,z),z);
  // Materiais próprios e opacos: evita a aparência preta causada por materiais/texturas herdados.
- const stone=new THREE.MeshStandardMaterial({color:0xe2d8c4,roughness:.92}),trim=new THREE.MeshStandardMaterial({color:0xb99b61,roughness:.72,metalness:.12}),roof=new THREE.MeshStandardMaterial({color:0x704039,roughness:.9}),darkRoof=new THREE.MeshStandardMaterial({color:0x512d2a,roughness:.9}),darkWood=new THREE.MeshStandardMaterial({color:0x3b2719,roughness:.88}),doorWood=new THREE.MeshStandardMaterial({color:0x80532f,roughness:.86}),glass=new THREE.MeshStandardMaterial({color:0x70b9d2,emissive:0x183e50,emissiveIntensity:.28,roughness:.32});
+ const stone=new THREE.MeshStandardMaterial({color:0x49443d,roughness:.96}),trim=new THREE.MeshStandardMaterial({color:0x8a7962,roughness:.88,metalness:.04}),roof=new THREE.MeshStandardMaterial({color:0x9b4935,roughness:.96}),darkRoof=new THREE.MeshStandardMaterial({color:0x713727,roughness:.95}),darkWood=new THREE.MeshStandardMaterial({color:0x2c1c12,roughness:.92}),doorWood=new THREE.MeshStandardMaterial({color:0x4b2d1b,roughness:.9}),glass=new THREE.MeshStandardMaterial({color:0x252c31,emissive:0x080c10,emissiveIntensity:.08,roughness:.88,metalness:0,transparent:false,opacity:1,side:THREE.DoubleSide});
  const wall=(w,h,d,px,py,pz)=>{const m=add(new THREE.BoxGeometry(w,h,d),stone,px,py,pz,g);m.userData.churchWall=1;return m};
  const roofPiece=(geo,mat,px,py,pz,rz=0)=>{const m=add(geo,mat,px,py,pz,g);m.rotation.z=rz;m.userData.churchRoof=1;return m};
  // Igreja maior: 10,5 de largura por 14,5 de comprimento. Fachada em segmentos para a porta ficar realmente aberta.
  const W=10.5,D=14.5,hw=W/2,hd=D/2;
- add(new THREE.BoxGeometry(W,.22,D),new THREE.MeshStandardMaterial({color:0xb8ad96,roughness:1}),0,-.12,0,g);
+ // Fundação/plataforma de pedra: cria uma borda visual contínua para a construção assentar no solo.
+ add(new THREE.BoxGeometry(W+1.0,.16,D+1.0),new THREE.MeshStandardMaterial({color:0x514c44,roughness:1}),0,-.08,0,g);
+ add(new THREE.BoxGeometry(W,.22,D),new THREE.MeshStandardMaterial({color:0x686156,roughness:1}),0,-.12,0,g);
+ // Degrau frontal baixo, alinhado com a porta dupla.
+ add(new THREE.BoxGeometry(4.15,.16,.72),new THREE.MeshStandardMaterial({color:0xa9a18f,roughness:1}),0,.02,hd+.42,g);
  wall(W,5.6,.34,0,2.8,-hd); // fundo atrás do altar
  wall(3.35,5.6,.34,-3.575,2.8,hd); // fachada esquerda
  wall(3.35,5.6,.34,3.575,2.8,hd);  // fachada direita; vão livre de 3,8
+ // Fecha a alvenaria acima da porta: não deve existir janela/vão transparente na fachada.
+ // A parede superior começa no topo do portal e vai até a base da empena.
+ wall(3.8,2.0,.34,0,4.6,hd);
  wall(.34,5.6,D,-hw,2.8,0);wall(.34,5.6,D,hw,2.8,0);
+ // Juntas de alvenaria: blocos de pedra cinza-bege em fiadas alternadas, no estilo do banco.
+ const joint=new THREE.MeshStandardMaterial({color:0x292a27,roughness:1});
+ // Fachada frontal: desenhar apenas nas áreas de parede ao redor da porta.
+ for(let y=.65;y<5.35;y+=.72){
+  for(const side of [-1,1]){
+   const x0=side<0?-4.95:3.55, x1=side<0?-2.15:4.95;
+   const xx=(x0+x1)/2, ww=x1-x0;
+   const line=add(new THREE.BoxGeometry(ww,.035,.025),joint,xx,y,hd+.185,g);line.userData.churchDetail=1;
+   for(let x=x0+.55+(Math.floor(y/.72)%2)*.48;x<x1-.2;x+=1.05){const seam=add(new THREE.BoxGeometry(.025,.68,.025),joint,x,y+.34,hd+.185,g);seam.userData.churchDetail=1;}
+  }
+ }
+ // Laterais: fiadas e juntas verticais interrompidas visualmente pelos vitrais.
+ for(const side of [-1,1]){
+  for(let y=.55;y<5.35;y+=.72){
+   const line=add(new THREE.BoxGeometry(.025,.035,D-.5),joint,side*(hw+.185),y,0,g);line.userData.churchDetail=1;
+   for(let z=-6.45+(Math.floor(y/.72)%2)*.5;z<6.4;z+=1.15){const seam=add(new THREE.BoxGeometry(.025,.66,.025),joint,side*(hw+.185),y+.33,z,g);seam.userData.churchDetail=1;}
+  }
+ }
  // Rodapé externo e pilastras de pedra clara.
  [-1,1].forEach(side=>{
   add(new THREE.BoxGeometry(.2,5.75,.48),trim,side*2.02,2.875,hd-.02,g);
@@ -2280,27 +2305,61 @@ const ALT={t:'altar',x:INX,z:INZ-3.9,range:3.2,g:null};
   for(let y=.48;y<2.9;y+=.58)add(new THREE.BoxGeometry(1.68,.07,.035),darkWood,leafX,y,leafZ+.105,g);
   add(new THREE.BoxGeometry(.075,2.45,.045),darkWood,leafX,1.58,leafZ+.11,g);
   add(new THREE.SphereGeometry(.065,8,6),trim,side*.16,1.48,leafZ+.13,g);
+  // Tábuas verticais e travessa diagonal em cada folha para dar relevo à madeira.
+  [-.62,-.22,.22,.62].forEach(dx=>add(new THREE.BoxGeometry(.035,2.55,.035),darkWood,leafX+dx,1.58,leafZ+.105,g));
+  const brace=add(new THREE.BoxGeometry(1.45,.075,.045),darkWood,leafX,1.55,leafZ+.13,g);brace.rotation.z=side*.48;
+  [-.72,.72].forEach(dx=>add(new THREE.BoxGeometry(.07,.13,.05),trim,leafX+dx,1.55,leafZ+.15,g));
  });
  // Arco de entrada em blocos low-poly, sem peça atravessando o vão.
  [-2.03,2.03].forEach(x=>{add(new THREE.BoxGeometry(.3,3.55,.38),trim,x,1.78,hd-.03,g);add(new THREE.BoxGeometry(.48,.22,.48),trim,x,3.56,hd-.03,g)});
  add(new THREE.BoxGeometry(3.95,.28,.42),trim,0,3.62,hd-.03,g);
+ // Inclinação e meia largura do telhado são declaradas antes de calcular a empena.
+ // Isso evita o erro temporal de inicialização (half antes do const half).
+ const pitch=.48,half=hw+.18,span=half/Math.cos(pitch);
  // Frontões triangulares largos nas extremidades.
- const rise=2.0,shape=new THREE.Shape();shape.moveTo(-hw,0);shape.lineTo(hw,0);shape.lineTo(0,rise);shape.lineTo(-hw,0);
- [-hd+.02,hd-.34].forEach(zz=>{const m=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:.3,bevelEnabled:false}),stone);m.position.set(0,5.58,zz);m.userData.churchWall=1;g.add(m)});
- // Telhado alto de duas águas, cobrindo todo o comprimento.
- const pitch=.48,half=hw+.15,span=half/Math.cos(pitch)+.2;
- [-1,1].forEach(side=>roofPiece(new THREE.BoxGeometry(span,.34,D+.65),roof,side*half/2,5.55+half*Math.tan(pitch)/2,0,-side*pitch));
- // Campanário com aberturas e quatro pilares, sem bloco sólido sobre a entrada.
- const tz=hd-.7,ty=7.05,tw=2.15;
- [-1,1].forEach(side=>{wall(.2,2.6,.2,side*tw/2,ty,tz);wall(1.95,2.6,.2,0,ty,tz+side*.95)});
- roofPiece(new THREE.ConeGeometry(1.65,1.8,4),darkRoof,0,8.65,tz,Math.PI/4);
- add(new THREE.BoxGeometry(.13,.82,.13),trim,0,9.62,tz,g);add(new THREE.BoxGeometry(.48,.12,.13),trim,0,9.83,tz,g);
- // Rosácea acima da porta e janelas coloridas nas laterais.
- const rose=add(new THREE.CircleGeometry(.68,10),glass,0,4.55,hd-.17,g);rose.rotation.x=0;
+ // Empena triangular com altura exatamente compatível com a inclinação do telhado.
+ const rise=half*Math.tan(pitch),shape=new THREE.Shape();shape.moveTo(-hw,0);shape.lineTo(hw,0);shape.lineTo(0,rise);shape.lineTo(-hw,0);
+ // Empenas nas duas extremidades; a frontal fecha o vão sob o telhado.
+ [-hd-.30,hd].forEach(zz=>{const m=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:.3,bevelEnabled:false}),stone);m.position.set(0,5.6,zz);m.userData.churchWall=1;g.add(m)});
+ // Telhado de duas águas simples, com telhas vermelhas. O comprimento cobre
+ // toda a nave até à fachada frontal; a empena frontal fica visível e limpa.
+ const roofLength=D+.72,roofCenterZ=0,roofBaseY=5.6;
+ const roofFrontZ=hd+.36;
+ [-1,1].forEach(side=>{
+  roofPiece(new THREE.BoxGeometry(span,.34,roofLength),roof,side*half/2,roofBaseY+half*Math.tan(pitch)/2,roofCenterZ,-side*pitch);
+ });
+ // Cumeeira acompanha toda a nave, sem extensão sobre a empena.
+ roofPiece(new THREE.BoxGeometry(.30,.20,roofLength),darkRoof,0,roofBaseY+half*Math.tan(pitch),roofCenterZ,0);
+ // Telhas low-poly em fileiras sobre as duas águas.
+ const tileMat=[roof,darkRoof,new THREE.MeshStandardMaterial({color:0x8b4030,roughness:1})];
+ [-1,1].forEach(side=>{
+  for(let row=0;row<7;row++){
+   const dist=.52+row*.67,px=side*dist,py=roofBaseY+(half-dist)*Math.tan(pitch)+.035;
+   for(let col=0;col<17;col++){
+    const zz=-7.25+col*.88+(row%2)*.42;
+    if(zz>roofFrontZ-.25)continue;
+    const tile=add(new THREE.BoxGeometry(.66,.065,.76),tileMat[(row+col)%tileMat.length],px,py,zz,g);
+    tile.rotation.z=-side*pitch;tile.userData.churchRoof=1;
+   }
+  }
+ });
+ // Cruz de pedra na empena frontal, centralizada acima da porta dupla.
+ // A cruz está na fachada (+Z), sem campanário, relógio ou peças de telhado por trás.
+ const crossMat=new THREE.MeshStandardMaterial({color:0x766b5a,roughness:.94});
+ const crossZ=hd+.34;
+ // Cruz elevada e centralizada na empena, substituindo o antigo vão/janelão frontal.
+ const crossV=add(new THREE.BoxGeometry(.24,1.82,.28),crossMat,0,6.55,crossZ,g);crossV.userData.churchDetail=1;
+ const crossH=add(new THREE.BoxGeometry(.92,.24,.28),crossMat,0,6.48,crossZ,g);crossH.userData.churchDetail=1;
+ // Vitrais laterais com topo arqueado, moldura de pedra e travessas de chumbo.
  [-1,1].forEach(side=>[-4.6,-1.8,1.2,4.3].forEach(lz=>{
-  add(new THREE.BoxGeometry(.045,1.55,.9),glass,side*(hw-.19),2.9,lz,g);
-  add(new THREE.BoxGeometry(.1,1.72,.1),trim,side*(hw-.16),2.9,lz-.49,g);add(new THREE.BoxGeometry(.1,1.72,.1),trim,side*(hw-.16),2.9,lz+.49,g);
-  add(new THREE.BoxGeometry(.1,.1,1.05),trim,side*(hw-.16),2.05,lz,g);add(new THREE.BoxGeometry(.1,.1,1.05),trim,side*(hw-.16),3.75,lz,g);
+  const wx=side*(hw+.205), paneX=side*(hw+.225);
+  add(new THREE.BoxGeometry(.055,1.25,.78),glass,paneX,2.78,lz,g);
+  // Arco superior feito por segmentos low-poly, para manter o estilo do restante do jogo.
+  for(let k=0;k<=6;k++){const a=Math.PI*k/6;const yy=3.405+Math.sin(a)*.39, zz=lz+Math.cos(a)*.39;add(new THREE.BoxGeometry(.085,.12,.12),trim,wx,yy,zz,g)}
+  add(new THREE.BoxGeometry(.11,1.48,.11),trim,wx,2.72,lz-.43,g);add(new THREE.BoxGeometry(.11,1.48,.11),trim,wx,2.72,lz+.43,g);
+  add(new THREE.BoxGeometry(.11,.11,.94),trim,wx,2.0,lz,g);
+  add(new THREE.BoxGeometry(.09,.055,.76),trim,side*(hw+.255),2.72,lz,g);
+  add(new THREE.BoxGeometry(.09,.055,.76),trim,side*(hw+.255),3.12,lz,g);
  }));
  // Pequenos contrafortes reforçam a silhueta medieval.
  [-4.6,-1.6,1.6,4.6].forEach(lz=>[-1,1].forEach(side=>{const b=add(new THREE.BoxGeometry(.55,2.1,.72),stone,side*(hw-.2),1.05,lz,g);b.userData.churchWall=1;add(new THREE.BoxGeometry(.68,.16,.8),trim,side*(hw-.2),2.12,lz,g)}));
@@ -2445,15 +2504,13 @@ function ensureBuildingInterior(o){
    })}
    // Janelas laterais altas, pilares de pedra e arcos estilizados.
    [-1,1].forEach(side=>{
-    [-4.7,-1.8,1.2,4.4].forEach((z,i)=>{A(root,new THREE.BoxGeometry(.055,1.55,.85),M([0x6fa8d4,0xd96b63,0x78bd91,0xd8b65b][i],.5),side*4.83,2.85,z);A(root,new THREE.BoxGeometry(.09,1.72,.09),Gold(),side*4.78,2.85,z-.47);A(root,new THREE.BoxGeometry(.09,1.72,.09),Gold(),side*4.78,2.85,z+.47)});
+    [-4.7,-1.8,1.2,4.4].forEach((z,i)=>{const pane=new THREE.MeshStandardMaterial({color:[0x426d8d,0x914944,0x477b5b,0x927b38][i],roughness:.82,metalness:0,transparent:false,opacity:1,side:THREE.DoubleSide});A(root,new THREE.BoxGeometry(.12,1.55,.85),pane,side*4.83,2.85,z);A(root,new THREE.BoxGeometry(.09,1.72,.09),Gold(),side*4.78,2.85,z-.47);A(root,new THREE.BoxGeometry(.09,1.72,.09),Gold(),side*4.78,2.85,z+.47)});
     [-5.5,-2.6,.4,3.5,5.8].forEach(z=>{A(root,new THREE.BoxGeometry(.22,4.3,.24),St(),side*4.72,2.12,z);A(root,new THREE.BoxGeometry(.38,.16,.38),Gold(),side*4.72,4.15,z)})
    });
    // Velas e candelabros decorativos junto ao altar, fora do corredor central.
    [-1.8,1.8].forEach(x=>{A(root,new THREE.CylinderGeometry(.055,.08,.55,8),Gold(),x,1.72,-4.75);A(root,new THREE.SphereGeometry(.085,8,6),new THREE.MeshStandardMaterial({color:0xffd477,emissive:0xffad32,emissiveIntensity:1.0}),x,2.05,-4.75)});
-   // Vigas altas de madeira e luminárias quentes.
-   [-4.45,4.45].forEach(x=>A(root,new THREE.BoxGeometry(.18,.2,13.0),Dk(),x,5.0,0));
-   [-4.8,-1.7,1.7,4.8].forEach(z=>A(root,new THREE.BoxGeometry(9.1,.16,.2),Wd(),0,4.75,z));
-   [-3.4,3.4].forEach(x=>{A(root,new THREE.BoxGeometry(.12,.8,.12),Gold(),x,4.1,0);A(root,new THREE.SphereGeometry(.2,8,6),new THREE.MeshStandardMaterial({color:0xffdf91,emissive:0xffc45b,emissiveIntensity:.9}),x,3.75,0)});
+   // Iluminação quente sem vigas atravessadas no campo de visão superior.
+   [-3.4,3.4].forEach(x=>{A(root,new THREE.SphereGeometry(.16,8,6),new THREE.MeshStandardMaterial({color:0xffdf91,emissive:0xffc45b,emissiveIntensity:.9}),x,3.65,0)});
    Lgt(root,0,4.1,0,0xffe8be,1.15,20);Lgt(root,0,2.8,-5.2,0xffc76b,.9,12);Lgt(root,-3.5,3.1,0,0xffe0b0,.35,10);Lgt(root,3.5,3.1,0,0xffe0b0,.35,10);
   }
   function buildHome(root){beams(root);rug(root,0,.2,3.2,2.5,0x53633a);bed(root,-3.1,-2.1,0x8b3030);table(root,2.5,-.3,1.8,1.3);stool(root,2.5,.65);stool(root,2.5,-1.15);chest(root,3.1,2.35);oven(root,-3.2,2.35);shelf(root,0,1.45,3.5,3,2);books(root,-.8,1.62,3.5,5);lantern(root,2.5,1.7,-.3);wallArt(root,4.7,-5.1,0x52633d);Lgt(root,0,3,0)}
@@ -2480,12 +2537,29 @@ function ensureBuildingInterior(o){
   // diante dele (no corredor), nunca até dentro do móvel ou até a porta exterior.
   const altarLocal=new THREE.Vector3(0,1.25,-5.45);
   const prayerStandLocal=new THREE.Vector3(0,0,-4.15);
-  const altarWorld=o.hg.localToWorld(altarLocal.clone());
-  const standWorld=o.hg.localToWorld(prayerStandLocal.clone());
-  const prayerTarget={t:'altar',x:standWorld.x,z:standWorld.z,range:1.25,g:root};
-  const hit=new THREE.Mesh(new THREE.BoxGeometry(3.7,1.5,1.5),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,colorWrite:false}));
-  hit.position.copy(altarLocal);hit.userData.o=prayerTarget;hit.userData.inner=1;hit.userData.isChurchAltarHit=1;root.add(hit);pick.push(hit);
+  // Atualiza as matrizes antes de converter as coordenadas locais para o mundo.
+  // Sem isso, o alvo pode receber coordenadas antigas e mandar o personagem para a porta.
+  o.hg.updateMatrixWorld(true);
+  root.updateMatrixWorld(true);
+  const standWorld=root.localToWorld(prayerStandLocal.clone());
+  const prayerTarget={t:'altar',x:standWorld.x,z:standWorld.z,range:1.35,g:root,churchPrayer:1};
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(3.7,1.8,1.8),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,colorWrite:false}));
+  hit.position.copy(altarLocal);hit.visible=true;hit.userData.o=prayerTarget;hit.userData.inner=1;hit.userData.isChurchAltarHit=1;root.add(hit);pick.push(hit);
   o.hg.userData.churchAltarTarget=hit;
+ }
+ // Alvo invisível na face INTERNA da porta: permite sair clicando na porta
+ // mesmo que as folhas fechadas ou a geometria decorativa estejam à frente.
+ if(kind==='church'&&!o.hg.userData.churchExitTarget){
+  const exitHit=new THREE.Mesh(
+   new THREE.BoxGeometry(3.65,3.45,.9),
+   new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,colorWrite:false})
+  );
+  exitHit.position.set(0,1.7,6.55);
+  exitHit.visible=true;
+  exitHit.userData.inner=1;
+  exitHit.userData.isChurchExitHit=1;
+  root.add(exitHit);
+  o.hg.userData.churchExitTarget=exitHit;
  }
 }
 
@@ -3414,7 +3488,7 @@ const TALK={
 function vis(o,on){o.g.visible=on;const i=pick.indexOf(o.g);if(on&&i<0)pick.push(o.g);if(!on&&i>=0)pick.splice(i,1)}
 function USE(o){
  if(o.t=='door'){if(o.jail){say('Carcereiro: A cadeia de '+T[o.ti].n+' não recebe visitas. Quem rouba à noite acaba aqui até as 07:00.','y');return}if(o.home&&!owns(o.ti)){say('Casa à venda! Fale com o Corretor desta cidade.','y');return}if(me.sleep>0)return;toggleDoor(o)}
- else if(o.t=='gitem')pickGround(o);else if(o.t=='bed')restBed();else if(o.t=='pet')petTap();else if(o.t=='forge')openSmith();else if(o.t=='cave'){me.door={ex:o.ex,ez:o.ez,id:-1};me.in=1;me.dun=1;me.x=DUN.x;me.z=DUN.z+9;me.target=null;say('Você desce à masmorra... Leve comida!','r')}else if(o.t=='dexit'){me.in=0;me.dun=0;me.x=me.door.ex;me.z=me.door.ez;me.target=null}else if(o.t=='treasure'){if(q.tes)say('O baú está vazio.');else if(q.ilha<1)say('O baú está trancado. Fale com a Capitã Lia no Porto Azul.','r');else{q.tes=1;q.ilha=2;give('arco');pay(200);addXp('combate',150);fim('Tesouro da Ilha')}}else if(o.t=='altar'){if(me.pray>0)return;me.sit=0;me.run=0;me.target=null;me.act=null;me.prayerX=o.x;me.prayerZ=o.z;me.pray=3.2;say('Você se ajoelha diante do altar e começa a rezar...','y')}else if(o.t=='exit'){leaveCleanup();mp(ALT,false);ownDec(false);me.in=0;me.x=me.door.ex;me.z=me.door.ez;if(NPC._bankerIn)vis(NPC._bankerIn,false);shopOff()}
+ else if(o.t=='gitem')pickGround(o);else if(o.t=='bed')restBed();else if(o.t=='pet')petTap();else if(o.t=='forge')openSmith();else if(o.t=='cave'){me.door={ex:o.ex,ez:o.ez,id:-1};me.in=1;me.dun=1;me.x=DUN.x;me.z=DUN.z+9;me.target=null;say('Você desce à masmorra... Leve comida!','r')}else if(o.t=='dexit'){me.in=0;me.dun=0;me.x=me.door.ex;me.z=me.door.ez;me.target=null}else if(o.t=='treasure'){if(q.tes)say('O baú está vazio.');else if(q.ilha<1)say('O baú está trancado. Fale com a Capitã Lia no Porto Azul.','r');else{q.tes=1;q.ilha=2;give('arco');pay(200);addXp('combate',150);fim('Tesouro da Ilha')}}else if(o.t=='altar'){if(me.pray>0)return;if(me.pp>=me.ppmax){say('Seus pontos de oração já estão completos.','y');return}me.sit=0;me.run=0;me.target=null;me.act=null;me.prayerX=o.x;me.prayerZ=o.z;me.pray=3.2;say('Você se ajoelha diante do altar e começa a rezar...','y')}else if(o.t=='exit'){leaveCleanup();mp(ALT,false);ownDec(false);me.in=0;me.x=me.door.ex;me.z=me.door.ez;if(NPC._bankerIn)vis(NPC._bankerIn,false);shopOff()}
  else if(o.t=='chest')robChest();else if(o.t=='chest_old'){opened[me.door.id]=1;vis(co,false);const g=10+Math.floor(rnd()*30);pay(g);say('Você abre o baú e encontra '+g+' moedas!','g')}}
 function pay(n){gold+=n;hud();save()}
 function buy(i,c){if(gold<c)return say('Moedas insuficientes.','r');if(ITEMS[i].slot=='tool'&&(cnt(i)||(eq.tool&&eq.tool.id==i)))return say('Você já possui esta ferramenta.','r');if(i=='espada'&&cnt('espada'))return say('Você já tem uma espada.','r');if(give(i,ITEMS[i].stack?10:1)){gold-=c;say('Você compra '+ITEMS[i].n+'.');hud();if((cur==4||cur==14)&&$('#shl'))shopRefresh();else render()}}
@@ -3473,11 +3547,31 @@ function tap(cx,cy){const r=cv.getBoundingClientRect();ndc.set((cx-r.left)/r.wid
  // capturarem o clique no altar. Priorize o collider do altar e mantenha o clique no
  // restante do salão limitado à malha interna.
  if(me.houseScene&&me.houseSceneDoor&&me.houseSceneDoor.church&&me.houseSceneDoor.hg.userData.realInner){
-  const altarHit=me.houseSceneDoor.hg.userData.churchAltarTarget;
-  if(altarHit){const ah=ray.intersectObject(altarHit,false);if(ah.length){startAct(altarHit.userData.o);return}}
-  const inner=me.houseSceneDoor.hg.userData.realInner;
+  const churchRoot=me.houseSceneDoor.hg;
+  churchRoot.updateMatrixWorld(true);
+  // Prioridade máxima para a porta pelo lado de dentro: sair não depende de
+  // selecionar a malha visível da folha, que pode estar coberta por decoração.
+  const exitHit=churchRoot.userData.churchExitTarget;
+  if(exitHit){
+   exitHit.updateMatrixWorld(true);
+   const eh=ray.intersectObject(exitHit,false);
+   if(eh.length){exitHouseScene();return}
+  }
+  const altarHit=churchRoot.userData.churchAltarTarget;
+  if(altarHit){
+   altarHit.updateMatrixWorld(true);
+   const ah=ray.intersectObject(altarHit,false);
+   if(ah.length){startAct(altarHit.userData.o);return}
+  }
+  const inner=churchRoot.userData.realInner;
   const ih=ray.intersectObject(inner,true).find(v=>v.object.visible&&v.object.isMesh&&!v.object.userData.isChurchAltarHit);
-  if(ih){me.act=null;me.target={x:ih.point.x,z:ih.point.z};mark.position.set(ih.point.x,ih.point.y+.1,ih.point.z);mark.life=1;return}
+  if(ih){
+   // Se o clique atingiu o altar ou a decoração imediatamente atrás dele,
+   // interpreta como interação de oração em vez de mandar o jogador ao ponto clicado.
+   const localHit=churchRoot.worldToLocal(ih.point.clone());
+   if(localHit.z < -4.35 && Math.abs(localHit.x)<2.7){const a=churchRoot.userData.churchAltarTarget;if(a){startAct(a.userData.o);return}}
+   me.act=null;me.target={x:ih.point.x,z:ih.point.z};mark.position.set(ih.point.x,ih.point.y+.1,ih.point.z);mark.life=1;return
+  }
   return;
  }
  // Procura uma interação em TODOS os objetos atingidos pelo raio.
@@ -3514,7 +3608,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(d<=o.range){face(pg,dx,dz,dt);if(['npc','door','exit','chest','altar','treasure','forge','cave','dexit','pet','gitem','bed'].includes(o.t)){o.t=='npc'?TALK[o.id]():USE(o);me.act=null}else{mode=o.t=='wolf'?(me.swing>0?({ranged:'bow',magic:'cast'}[me.mode]||(eq.weapon?'slash':'punch')):'guard'):{fish:'fish',tree:'chop',fire:'fish',oven:'fish',rock:'chop'}[o.t];if(me.cd<=0){me.cd=o.t=='wolf'?atkSpd()*TICK:workIv(o);doAct(o)}}}
   else{const r=step(o.x,o.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else if(r==-1){me.act=null}}}
  else if(me.target){const g=me.target,dx=g.x-me.x,dz=g.z-me.z,r=step(g.x,g.z,SPD()*dt);if(r==1){mode='walk';face(pg,dx,dz,dt)}else me.target=null}
- if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,(me.prayerX??ALT.x)-me.x,(me.prayerZ??ALT.z)-me.z,dt);if(me.pray<=0){me.pray=0;me.prayerX=me.prayerZ=null;me.pp=me.ppmax;addXp('prayer',25);hud();render();say('Você termina a oração, recupera seus pontos e recebe 25 de experiência em Oração.','g');mode=''}}pg.position.set(me.x,(me.rsDoor&&me.rsDoor.hg?me.rsDoor.hg.position.y+.43:surfaceY(me.x,me.z)+.04)-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);if(!pg._lt||t-pg._lt>1||t<pg._lt){pg._lt=t;updCharTag()}
+ if(me.sit&&!me.act&&!me.target)mode='sit';if(me.pray>0&&!me.act&&!me.target){mode='kneel';me.pray-=dt;face(pg,(me.prayerX??ALT.x)-me.x,(me.prayerZ??ALT.z)-me.z,dt);if(me.pray<=0){me.pray=0;me.prayerX=me.prayerZ=null;me.pp=me.ppmax;hud();render();say('Você termina a oração e recupera todos os seus pontos de oração.','g');mode=''}}pg.position.set(me.x,(me.rsDoor&&me.rsDoor.hg?me.rsDoor.hg.position.y+.43:surfaceY(me.x,me.z)+.04)-(mode=='sit'?.42:mode=='kneel'?.36:0),me.z);pose(pg,t*(me.run&&me.sta>0&&mode=='walk'?1.5:1),mode);if(!pg._lt||t-pg._lt>1||t<pg._lt){pg._lt=t;updCharTag()}
  for(const w of W){if(mobGuest(w,dt))continue;if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0){if(w.dead==20&&!full('osso')){give('osso');say('Ossos caem no chão.')}w.dead-=dt;if(w.dead<=0){w.hp=w.mhp;w.g.visible=true;w.x=w.hx;w.z=w.hz}continue}
   const tg=mobTarget(w),dx=tg.x-w.x,dz=tg.z-w.z,d=Math.hypot(dx,dz);let mv=0,gx=0,gz=0;
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
@@ -3547,7 +3641,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
  skyTick(a,sa,dy,py);hemi.intensity=.22+.7*dy;WIN.emissiveIntensity=(1-dy)*.9;
  if(me.houseScene){S.background.setHex(0x17120e);S.fog.color.setHex(0x17120e)}else{S.background.setHex(0x0a1428).lerp(DC,dy);S.fog.color.copy(S.background)}
  {const K=KEYS,kd=dt*1.9;if(K.ArrowLeft)yaw+=kd;if(K.ArrowRight)yaw-=kd;if(K.ArrowUp)pitch=clamp(pitch+kd*.7,.2,1.3);if(K.ArrowDown)pitch=clamp(pitch-kd*.7,.2,1.3);if(K.PageUp||K.Equal)dist=clamp(dist-dt*12,6,40);if(K.PageDown||K.Minus)dist=clamp(dist+dt*12,6,40)}
- let cd=me.houseScene?Math.min(dist,10):dist;for(let it=0;it<8;it++){const ax=me.x+Math.sin(yaw)*Math.cos(pitch)*cd,az=me.z+Math.cos(yaw)*Math.cos(pitch)*cd,ay=py+Math.sin(pitch)*cd;if(me.in||ay>7||!obBig(t).some(o=>{const ex=ax-o.x,ez=az-o.z,rr=o.r+.3;return ex*ex+ez*ez<rr*rr}))break;cd=Math.max(3,cd*.8)}
+ let cd=me.houseScene?Math.min(dist,15):dist;for(let it=0;it<8;it++){const ax=me.x+Math.sin(yaw)*Math.cos(pitch)*cd,az=me.z+Math.cos(yaw)*Math.cos(pitch)*cd,ay=py+Math.sin(pitch)*cd;if(me.in||ay>7||!obBig(t).some(o=>{const ex=ax-o.x,ez=az-o.z,rr=o.r+.3;return ex*ex+ez*ez<rr*rr}))break;cd=Math.max(3,cd*.8)}
  const cx=me.x+Math.sin(yaw)*Math.cos(pitch)*cd,cz=me.z+Math.cos(yaw)*Math.cos(pitch)*cd;cam.position.set(cx,Math.max(py+Math.sin(pitch)*cd,H(cx,cz)+1.2),cz);cam.lookAt(me.x,py,me.z);
 updateChurchCameraCutaway();occUpdate();
  R.render(S,cam)}
