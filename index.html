@@ -863,8 +863,8 @@ function npc(id,nome,x,z,sh,pa){const fm=['mara','lia','domadora','guarda4','gua
  const o={t:'npc',id,x,z,range:3,g,nome};g.userData.o=o;pick.push(g);OBJ.push(o);OB.push({x,z,r:.7});NPC[id]=o}
 npc('mara','Mara',5,-4,0xb03a5a,0x4a3a2a);npc('tomas','Guarda Tomás',-6,6,0x4a6a9a,0x333333);
 npc('lia','Capitã Lia',154,54,0xe8e8e8,0x24456b);const[FX,FZ]=offRoad(-100,-70,10);npc('bras','Capitão Brás',FX-5,FZ-5,0x6a6a6a,0x3a2a1a);
-// Eldoria animal pass 1 — lobo com malhas anatômicas suavizadas: tronco alongado,
-// peito profundo, cintura marcada, pernas mais longas e cabeça/focinho bem definidos.
+// Eldoria animal pass 2 — lobo com silhueta anatômica refinada, pernas reforçadas,
+// articulações mais naturais, patas largas e cabeça/focinho definidos.
 const W=[];
 [[-72,-45],[-85,-60],[-60,-70],[-92,-30],[-50,-48]].forEach(([x0,z0])=>{
  const [x,z]=safeSpot(x0,z0),g=new THREE.Group();
@@ -936,28 +936,48 @@ const W=[];
  // Cauda longa e espessa, descendo em curva atrás da garupa.
  loft(fur,[[-1.53,.72,.075,.075],[-1.48,.735,.09,.09],[-1.43,.76,.10,.10],[-1.31,.83,.105,.11],[-1.17,.91,.125,.13],[-1.03,1.00,.14,.14],[-.88,1.09,.13,.13],[-.76,1.13,.105,.11]],24);
 
- // Pernas proporcionais, com volumes suavizados de ombro/coxa, articulações, canela e patas.
- // A pose é levemente flexionada para transmitir alerta sem parecer um cão de brinquedo.
+ // Pernas retrabalhadas: mais longas e robustas, com volumes de ombro/coxa
+ // integrados ao tronco, joelhos definidos e patas largas apoiadas no chão.
+ // O eixo X separa as pernas; Z positivo é a frente do lobo.
  const legs=[
-  {x:-.255,z:.49,kx:-.29,kz:.40,front:true},
-  {x: .255,z:.49,kx: .29,kz:.40,front:true},
-  {x:-.235,z:-.55,kx:-.29,kz:-.37,front:false},
-  {x: .235,z:-.55,kx: .29,kz:-.37,front:false}
+  {x:-.255,z:.49,kx:-.285,kz:.43,front:true},
+  {x: .255,z:.49,kx: .285,kz:.43,front:true},
+  {x:-.235,z:-.55,kx:-.285,kz:-.40,front:false},
+  {x: .235,z:-.55,kx: .285,kz:-.40,front:false}
  ];
+ const legPivots=[];
  legs.forEach(({x:lx,z:lz,kx,kz,front})=>{
+   // Cada perna passa a ter um pivô próprio no quadril/ombro para poder balançar ao andar.
+   const hipY=front? .94:.91, hip=[lx,hipY,lz], firstChild=g.children.length;
    const legMat=front?fur:furDark;
-   const hipY=front? .91:.86,kneeY=front? .52:.49,ankleY=.115;
-   const hip=[lx,hipY,lz],knee=[kx,kneeY,kz],ankle=[lx*.92,ankleY,lz+(front?.045:-.035)];
-   ell(legMat,hip,[front?.115:.145,front?.19:.21,front?.14:.16],0);
-   seg(hip,knee,front?.105:.135,front?.085:.095,legMat,16);
-   ell(legMat,knee,[.078,.082,.082],1);
-   seg(knee,ankle,.075,.052,legMat,16);
-   // patas compactas com dedos e pequenas garras escuras
-   ell(furDark,[ankle[0],.078,ankle[2]+.055],[.095,.058,.12],0);
-   // Dedos discretos e arredondados; sem garras longas que pareçam espinhos.
+   const kneeY=front? .53:.56, ankleY=.105;
+   const knee=[kx,kneeY,kz];
+   const ankle=[lx*.94,ankleY,lz+(front?.075:-.055)];
+   // Ombro e coxa com volume maior para não parecerem palitos sob o tronco.
+   ell(legMat,[lx,hipY,lz],[front?.145:.175,front?.235:.255,front?.17:.20],1);
+   // Parte superior da perna com afunilamento natural.
+   seg(hip,knee,front?.125:.155,front?.092:.105,legMat,20);
+   ell(legMat,knee,[front?.092:.105,.095,.095],1);
+   // Canela levemente inclinada, mantendo a pata na altura do terreno.
+   seg(knee,ankle,front?.078:.085,.057,front?fur:furDark,18);
+   ell(legMat,[ankle[0],.19,ankle[2]-.005],[.068,.105,.072],1);
+   // Patas mais largas e compridas, com dedos arredondados e discretas garras.
+   ell(furDark,[ankle[0],.065,ankle[2]+.065],[.112,.052,.145],1);
    [-1,0,1].forEach(d=>{
-     ell(furDark,[ankle[0]+d*.036,.061,ankle[2]+.115],[.028,.022,.038],0);
+     ell(furDark,[ankle[0]+d*.041,.052,ankle[2]+.145],[.032,.022,.045],0);
+     ell(noseMat,[ankle[0]+d*.041,.045,ankle[2]+.178],[.010,.009,.018],0);
    });
+   // Reagrupa as peças da perna sem alterar sua posição inicial, deixando-as girar juntas.
+   const pivot=new THREE.Group();
+   pivot.position.set(lx,hipY,lz);
+   const parts=g.children.slice(firstChild);
+   parts.forEach(part=>{
+     g.remove(part);
+     part.position.x-=lx; part.position.y-=hipY; part.position.z-=lz;
+     pivot.add(part);
+   });
+   g.add(pivot);
+   legPivots.push(pivot);
  });
  // Acabamento anatômico liso: sem placas, escamas ou mechas sobrepostas.
  // A silhueta é formada pelo tronco, pescoço e cabeça contínuos.
@@ -966,7 +986,7 @@ const W=[];
  const bs=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(bc),depthTest:false,transparent:true,fog:false}));
  bs.scale.set(1.8,.34,1);bs.position.y=2.7;bs.visible=false;g.add(bs);
  g.position.set(x,H(x,z),z);S.add(g);
- const o={t:'wolf',x,z,hx:x,hz:z,range:2.3,g,lbl:l,lg:[],hp:8,dead:0,cd:0,bc,bs,bt:0,atk:8,str:12,def:6,dbon:0,ln:0,mhp:8,nm:'lobo',kx:14,drops:[['carne',.5],['pocao',.1]]};
+ const o={t:'wolf',x,z,hx:x,hz:z,range:2.3,g,lbl:l,lg:legPivots,walkPhase:Math.random()*Math.PI*2,hp:8,dead:0,cd:0,bc,bs,bt:0,atk:8,str:12,def:6,dbon:0,ln:0,mhp:8,nm:'lobo',kx:14,drops:[['carne',.5],['pocao',.1]]};
  g.userData.o=o;pick.push(g);OBJ.push(o);W.push(o);
 });
 // interior das casas — paredes com vão de porta, porta justa na parede
@@ -3734,7 +3754,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
   if(mv){const l=Math.hypot(gx,gz);w.x+=gx/l*mv*dt;w.z+=gz/l*mv*dt;if(H(w.x,w.z)<-.2){w.x-=gx/l*mv*dt;w.z-=gz/l*mv*dt}face(w.g,gx,gz,dt)}else if(d<=14)face(w.g,dx,dz,dt);
   w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;w.at=.6;if(tg.r){const c=MP.conns[tg.r];try{if(c&&c.open)c.send({t:'a',i:w.i})}catch(e){}}else mobStrike(w)}
-  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));const s=Math.sin(t*10)*.6*(mv?1:0);w.lg.forEach((l,i)=>l.rotation.x=(i%3?-s:s));mobAtk(w,dt)}
+  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));if(mv){w.walkPhase=(w.walkPhase||0)+dt*10;const gait=Math.sin(w.walkPhase)*.48;w.lg.forEach((leg,i)=>{leg.rotation.x=gait*((i===0||i===3)?1:-1)});w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.025}else{w.lg.forEach(leg=>{leg.rotation.x=0})}mobAtk(w,dt)}
  {mnT+=dt;if(mnT>.25){mnT=0;for(const w of W)if(w.lbl){const dx=me.x-w.x,dz=me.z-w.z;w.lbl.visible=dx*dx+dz*dz<LN2}}}
  for(let i=SP.length-1;i>=0;i--){const p=SP[i];p.t-=dt;p.s.position.y=p.y+(1-p.t)*.6;p.s.material.opacity=Math.min(1,p.t*2);if(p.t<=0){S.remove(p.s);SP.splice(i,1)}}
  for(const k in NPC){const n=NPC[k],dx=me.x-n.x,dz=me.z-n.z,d2=dx*dx+dz*dz;if(d2>PV2){if(n.g.visible){n.g.visible=false;n.qh=1}continue}if(n.qh){n.qh=0;n.g.visible=true}if(d2>PA2)continue;if(d2<120)face(n.g,dx,dz,dt);pose(n.g,t+k.length*2,'')}
