@@ -1,412 +1,132 @@
-/*
- * ============================================================
- * ELDORIA: MUNDO ABERTO
- * SERVICE WORKER - PWA / OFFLINE
- * ============================================================
- */
+/* Eldoria - Service Worker para GitHub Pages */
 
-const CACHE_VERSION = "eldoria-v2";
+const CACHE = 'eldoria-v1';
 
-const APP_CACHE = `eldoria-app-${CACHE_VERSION}`;
-const RUNTIME_CACHE = `eldoria-runtime-${CACHE_VERSION}`;
-
-/*
- * Arquivos principais do aplicativo.
- *
- * Esses arquivos serão armazenados durante a instalação
- * do Service Worker para permitir o funcionamento offline.
- */
-const APP_SHELL = [
-    "./",
-    "./index.html",
-    "./manifest.webmanifest",
-    "./apple-touch-icon.png",
-    "./icon-192.png"
+const CORE = [
+  './',
+  './index.html'
 ];
 
+const OPTIONAL = [
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'
+];
 
-/*
- * ============================================================
- * INSTALAÇÃO
- * ============================================================
- */
+// INSTALAÇÃO
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
 
-self.addEventListener("install", (event) => {
+    const cache = await caches.open(CACHE);
 
-    event.waitUntil(
+    await cache.addAll(CORE);
 
-        caches.open(APP_CACHE)
-
-            .then(async (cache) => {
-
-                for (const file of APP_SHELL) {
-
-                    try {
-
-                        await cache.add(file);
-
-                        console.log(
-                            "[Eldoria SW] Arquivo armazenado:",
-                            file
-                        );
-
-                    } catch (error) {
-
-                        /*
-                         * Se algum arquivo opcional não existir,
-                         * isso não impede o Service Worker de instalar.
-                         */
-
-                        console.warn(
-                            "[Eldoria SW] Não foi possível armazenar:",
-                            file,
-                            error
-                        );
-
-                    }
-
-                }
-
-            })
-
-            /*
-             * Ativa imediatamente a nova versão.
-             */
-
-            .then(() => self.skipWaiting())
-
+    await Promise.allSettled(
+      OPTIONAL.map(url => cache.add(url))
     );
 
+    await self.skipWaiting();
+
+  })());
 });
 
+// ATIVAÇÃO E LIMPEZA DE CACHE ANTIGO
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
 
-/*
- * ============================================================
- * ATIVAÇÃO
- * ============================================================
- */
+    const keys = await caches.keys();
 
-self.addEventListener("activate", (event) => {
-
-    event.waitUntil(
-
-        caches.keys()
-
-            .then((cacheNames) => {
-
-                return Promise.all(
-
-                    cacheNames
-
-                        .filter((cacheName) => {
-
-                            return (
-                                cacheName.startsWith("eldoria-") &&
-                                cacheName !== APP_CACHE &&
-                                cacheName !== RUNTIME_CACHE
-                            );
-
-                        })
-
-                        .map((cacheName) => {
-
-                            console.log(
-                                "[Eldoria SW] Removendo cache antigo:",
-                                cacheName
-                            );
-
-                            return caches.delete(cacheName);
-
-                        })
-
-                );
-
-            })
-
-            /*
-             * Faz o novo Service Worker controlar
-             * as páginas abertas imediatamente.
-             */
-
-            .then(() => self.clients.claim())
-
+    await Promise.all(
+      keys
+        .filter(key =>
+          key.startsWith('eldoria-') &&
+          key !== CACHE
+        )
+        .map(key => caches.delete(key))
     );
 
+    await self.clients.claim();
+
+  })());
 });
 
+// FUNCIONAMENTO OFFLINE
+self.addEventListener('fetch', event => {
 
-/*
- * ============================================================
- * MENSAGENS
- * ============================================================
- *
- * Permite que o index.html peça ao Service Worker
- * para assumir o controle imediatamente.
- */
+  if (event.request.method !== 'GET') return;
 
-self.addEventListener("message", (event) => {
+  const url = new URL(event.request.url);
 
-    if (event.data === "SKIP_WAITING") {
+  if (!['http:', 'https:'].includes(url.protocol)) return;
 
-        self.skipWaiting();
+  const sameOrigin = url.origin === self.location.origin;
 
-    }
+  const supportedCDN =
+    url.hostname === 'cdnjs.cloudflare.com' &&
+    (/\/ajax\/libs\/(three\.js|peerjs)\//).test(url.pathname);
 
-});
+  if (!sameOrigin && !supportedCDN) return;
 
+  // Navegação: tenta internet primeiro
+  if (sameOrigin && event.request.mode === 'navigate') {
 
-/*
- * ============================================================
- * FETCH
- * ============================================================
- */
+    event.respondWith((async () => {
 
-self.addEventListener("fetch", (event) => {
+      try {
 
-    const request = event.request;
+        const response = await fetch(event.request);
 
-    /*
-     * Service Worker só trabalha com requisições GET.
-     */
+        if (response.ok) {
+          (await caches.open(CACHE))
+            .put(event.request, response.clone());
+        }
 
-    if (request.method !== "GET") {
+        return response;
 
-        return;
+      } catch (_) {
 
-    }
-
-
-    const url = new URL(request.url);
-
-
-    /*
-     * ========================================================
-     * 1. PÁGINA PRINCIPAL
-     * ========================================================
-     *
-     * Quando o usuário entra no jogo:
-     *
-     * ONLINE:
-     *   tenta buscar a versão mais recente.
-     *
-     * OFFLINE:
-     *   utiliza o index.html armazenado no cache.
-     */
-
-    if (request.mode === "navigate") {
-
-        event.respondWith(
-
-            fetch(request)
-
-                .then((response) => {
-
-                    if (response && response.ok) {
-
-                        const responseClone =
-                            response.clone();
-
-                        caches.open(APP_CACHE)
-
-                            .then((cache) => {
-
-                                cache.put(
-                                    "./index.html",
-                                    responseClone
-                                );
-
-                            });
-
-                    }
-
-                    return response;
-
-                })
-
-                .catch(() => {
-
-                    console.log(
-                        "[Eldoria SW] Offline - usando index.html do cache."
-                    );
-
-                    return caches.match("./index.html");
-
-                })
-
+        return (
+          (await caches.match(event.request)) ||
+          (await caches.match('./index.html')) ||
+          Response.error()
         );
 
-        return;
+      }
+
+    })());
+
+    return;
+  }
+
+  // Outros arquivos: tenta cache primeiro
+  event.respondWith((async () => {
+
+    const cached = await caches.match(event.request);
+
+    if (cached) return cached;
+
+    try {
+
+      const response = await fetch(event.request);
+
+      if (response.ok || response.type === 'opaque') {
+
+        (await caches.open(CACHE))
+          .put(event.request, response.clone());
+
+      }
+
+      return response;
+
+    } catch (_) {
+
+      return Response.error();
 
     }
 
-
-    /*
-     * ========================================================
-     * 2. RECURSOS EXTERNOS
-     * ========================================================
-     *
-     * Seu index.html utiliza recursos externos como:
-     *
-     * Three.js
-     * PeerJS
-     *
-     * Depois que esses arquivos forem carregados uma vez
-     * com internet, eles ficam disponíveis no cache.
-     */
-
-    if (url.origin !== self.location.origin) {
-
-        event.respondWith(
-
-            caches.match(request)
-
-                .then((cachedResponse) => {
-
-                    /*
-                     * Se já estiver no cache, usa o cache.
-                     */
-
-                    if (cachedResponse) {
-
-                        return cachedResponse;
-
-                    }
-
-
-                    /*
-                     * Caso ainda não esteja armazenado,
-                     * busca pela internet.
-                     */
-
-                    return fetch(request)
-
-                        .then((response) => {
-
-                            if (
-                                !response ||
-                                !response.ok
-                            ) {
-
-                                return response;
-
-                            }
-
-
-                            const responseClone =
-                                response.clone();
-
-
-                            caches.open(RUNTIME_CACHE)
-
-                                .then((cache) => {
-
-                                    cache.put(
-                                        request,
-                                        responseClone
-                                    );
-
-                                });
-
-
-                            return response;
-
-                        })
-
-                        .catch(() => {
-
-                            /*
-                             * Se estiver offline e o recurso
-                             * já tiver sido armazenado anteriormente,
-                             * tenta recuperá-lo do cache.
-                             */
-
-                            return caches.match(request);
-
-                        });
-
-                })
-
-        );
-
-        return;
-
-    }
-
-
-    /*
-     * ========================================================
-     * 3. ARQUIVOS LOCAIS
-     * ========================================================
-     *
-     * Exemplos:
-     *
-     * imagens
-     * CSS
-     * JavaScript
-     * fontes
-     * JSON
-     * etc.
-     *
-     * Estratégia:
-     *
-     * CACHE FIRST
-     *
-     * Se já estiver no cache:
-     *     usa o cache.
-     *
-     * Se não estiver:
-     *     baixa da internet e salva.
-     */
-
-    event.respondWith(
-
-        caches.match(request)
-
-            .then((cachedResponse) => {
-
-                if (cachedResponse) {
-
-                    return cachedResponse;
-
-                }
-
-
-                return fetch(request)
-
-                    .then((response) => {
-
-                        if (
-                            !response ||
-                            !response.ok
-                        ) {
-
-                            return response;
-
-                        }
-
-
-                        const responseClone =
-                            response.clone();
-
-
-                        caches.open(RUNTIME_CACHE)
-
-                            .then((cache) => {
-
-                                cache.put(
-                                    request,
-                                    responseClone
-                                );
-
-                            });
-
-
-                        return response;
-
-                    });
-
-            })
-
-    );
+  })());
 
 });
