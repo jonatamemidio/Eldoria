@@ -877,7 +877,7 @@ const W=[];
        eyeMat=new THREE.MeshStandardMaterial({color:0xd3a52d,roughness:.3}),
        pupilMat=new THREE.MeshStandardMaterial({color:0x100e0d,roughness:.4});
  const ell=(mat,pos,scale,detail=1)=>{
-   const m=new THREE.Mesh(new THREE.IcosahedronGeometry(1,detail),mat);
+   const m=new THREE.Mesh(new THREE.SphereGeometry(1,Math.max(7,detail===0?7:9),Math.max(5,detail===0?5:7)),mat);
    m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;
  };
  // Segmentos anatômicos facetados e malha por anéis para volumes orgânicos low-poly.
@@ -918,15 +918,18 @@ const W=[];
    seg([side*.095,1.465,1.20],[side*.075,1.455,1.37],.009,.006,earMat,5);
    ell(eyeMat,[side*.207,1.635,.985],[.026,.023,.026],1);
    ell(pupilMat,[side*.226,1.635,.992],[.009,.017,.012],1);
-   // orelha triangular com base larga, mais alta e recuada
-   const earGeo=new THREE.BufferGeometry();
-   const ex=side*.145, ez=.91;
-   earGeo.setAttribute('position',new THREE.Float32BufferAttribute([ex-.095,1.70,ez-.055, ex+.095,1.70,ez-.055, ex+side*.018,2.015,ez+.005, ex-.095,1.70,ez+.055, ex+.095,1.70,ez+.055, ex+side*.018,2.015,ez+.005],3));
-   earGeo.setIndex([0,1,2,3,5,4,0,2,3,1,4,2]);earGeo.computeVertexNormals();
-   const ear=new THREE.Mesh(earGeo,furDark);ear.castShadow=true;ear.receiveShadow=true;g.add(ear);
-   const innerGeo=new THREE.BufferGeometry();
-   innerGeo.setAttribute('position',new THREE.Float32BufferAttribute([ex-.045,1.735,ez+.057,ex+.045,1.735,ez+.057,ex+side*.012,1.955,ez+.035],3));innerGeo.setIndex([0,1,2]);innerGeo.computeVertexNormals();
-   const inner=new THREE.Mesh(innerGeo,earMat);inner.castShadow=true;g.add(inner);
+   // Orelhas com base cheia e ponta suavizada: sem planos triangulares finos.
+   const ear=new THREE.Mesh(new THREE.SphereGeometry(1,8,6),furDark);
+   ear.scale.set(.082,.19,.072);
+   ear.position.set(side*.155,1.805,.91);
+   ear.rotation.z=side*-.16;
+   ear.rotation.x=-.12;
+   ear.castShadow=true;ear.receiveShadow=true;g.add(ear);
+   const inner=new THREE.Mesh(new THREE.SphereGeometry(1,7,5),earMat);
+   inner.scale.set(.043,.125,.018);
+   inner.position.set(side*.155,1.815,.972);
+   inner.rotation.z=side*-.16;
+   inner.castShadow=true;g.add(inner);
    // bochecha e volume do maxilar
    ell(fur,[side*.16,1.48,.86],[.075,.11,.15],0);
  });
@@ -956,20 +959,20 @@ const W=[];
      ell(noseMat,[ankle[0]+d*.039,.047,ankle[2]+.165],[.012,.012,.025],0);
    });
  });
- // Pelagem em pequenas mechas sobre a nuca e ombros; evita a aparência de espinhos de dinossauro.
- const maneMats=[furDark,fur,furLight];
- const maneShards=[
-  [-.12,1.58,.49,.075,.13,.18,-.10],[.12,1.59,.55,.075,.13,.18,.10],
-  [-.10,1.62,.64,.07,.12,.16,-.08],[.10,1.62,.70,.07,.12,.16,.08],
-  [-.08,1.62,.77,.06,.10,.14,-.06],[.08,1.61,.82,.06,.10,.14,.06],
-  [-.22,1.48,.55,.075,.12,.16,-.25],[.22,1.48,.55,.075,.12,.16,.25]
+ // Pelagem curta em volumes arredondados sobre nuca e ombros.
+ // Evita cones e pontas isoladas; as mechas acompanham o contorno do pescoço.
+ const maneClumps=[
+  [-.12,1.56,.48,.085,.095,.16,-.18],[.12,1.56,.52,.085,.095,.16,.18],
+  [-.10,1.59,.60,.075,.085,.145,-.12],[.10,1.59,.64,.075,.085,.145,.12],
+  [-.075,1.59,.72,.065,.075,.13,-.08],[.075,1.59,.75,.065,.075,.13,.08],
+  [-.20,1.47,.51,.075,.10,.15,-.22],[.20,1.47,.51,.075,.10,.15,.22]
  ];
- maneShards.forEach((a,i)=>{
-   const m=new THREE.Mesh(new THREE.ConeGeometry(a[3],a[4],5,1),maneMats[i%3]);
-   m.position.set(a[0],a[1],a[2]);m.rotation.set(-.25,a[6],Math.PI+(a[6]*.3));
+ maneClumps.forEach((a,i)=>{
+   const m=new THREE.Mesh(new THREE.SphereGeometry(1,7,5),maneMats[i%3]);
+   m.position.set(a[0],a[1],a[2]);m.scale.set(a[3],a[4],a[5]);m.rotation.z=a[6];
    m.castShadow=true;m.receiveShadow=true;g.add(m);
  });
- // Planos angulares de pelagem nos ombros e quadris para quebrar a silhueta lisa.
+ // Volumes musculares integrados nos ombros e quadris, sem placas triangulares.
  ell(furLight,[-.29,1.25,.38],[.075,.16,.27],0);
  ell(furDark,[.29,1.25,.38],[.075,.16,.27],0);
  ell(furLight,[-.26,1.15,-.48],[.07,.17,.25],0);
