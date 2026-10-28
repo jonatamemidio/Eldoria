@@ -3754,7 +3754,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
   if(mv){const l=Math.hypot(gx,gz);w.x+=gx/l*mv*dt;w.z+=gz/l*mv*dt;if(H(w.x,w.z)<-.2){w.x-=gx/l*mv*dt;w.z-=gz/l*mv*dt}face(w.g,gx,gz,dt)}else if(d<=14)face(w.g,dx,dz,dt);
   w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;w.at=.6;if(tg.r){const c=MP.conns[tg.r];try{if(c&&c.open)c.send({t:'a',i:w.i})}catch(e){}}else mobStrike(w)}
-  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));if(mv){w.walkPhase=(w.walkPhase||0)+dt*10;const gait=Math.sin(w.walkPhase)*.48;w.lg.forEach((leg,i)=>{leg.rotation.x=gait*((i===0||i===3)?1:-1)});w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.025}else{w.lg.forEach(leg=>{leg.rotation.x=0})}mobAtk(w,dt)}
+  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));w.walkPhase=(w.walkPhase||0)+(mv?dt*11:0);const gait=mv?Math.sin(w.walkPhase)*.78:0;w.lg.forEach((leg,i)=>{const side=(i===0||i===3)?1:-1;leg.rotation.x=gait*side;leg.rotation.z=mv?Math.sin(w.walkPhase+((i===0||i===2)?0:Math.PI))*.07:0});if(mv)w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.035;mobAtk(w,dt)}
  {mnT+=dt;if(mnT>.25){mnT=0;for(const w of W)if(w.lbl){const dx=me.x-w.x,dz=me.z-w.z;w.lbl.visible=dx*dx+dz*dz<LN2}}}
  for(let i=SP.length-1;i>=0;i--){const p=SP[i];p.t-=dt;p.s.position.y=p.y+(1-p.t)*.6;p.s.material.opacity=Math.min(1,p.t*2);if(p.t<=0){S.remove(p.s);SP.splice(i,1)}}
  for(const k in NPC){const n=NPC[k],dx=me.x-n.x,dz=me.z-n.z,d2=dx*dx+dz*dz;if(d2>PV2){if(n.g.visible){n.g.visible=false;n.qh=1}continue}if(n.qh){n.qh=0;n.g.visible=true}if(d2>PA2)continue;if(d2<120)face(n.g,dx,dz,dt);pose(n.g,t+k.length*2,'')}
@@ -3954,7 +3954,7 @@ function mobGuest(w,dt){if(!(MP.peer&&MP.id&&!MP.host&&w.hx<450&&w.i!=null))retu
  if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0)return 1;let mv=0;
  if(w.tx!=null){const dx=w.tx-w.x,dz=w.tz-w.z,d=Math.hypot(dx,dz);if(d>30){w.x=w.tx;w.z=w.tz}else{const k=Math.min(1,dt*8);w.x+=dx*k;w.z+=dz*k}if(d>.12){mv=1;face(w.g,dx,dz,dt)}}
  w.ln=Math.max(0,(w.ln||0)-dt);const l2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+l2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+l2*Math.cos(w.g.rotation.y));
- const sv=Math.sin(performance.now()/100)*.6*mv;w.lg.forEach((l,i)=>l.rotation.x=(i%3?-sv:sv));mobAtk(w,dt);return 1}
+ w.walkPhase=(w.walkPhase||0)+(mv?dt*11:0);const sv=mv?Math.sin(w.walkPhase)*.78:0;w.lg.forEach((l,i)=>{const side=(i===0||i===3)?1:-1;l.rotation.x=sv*side;l.rotation.z=mv?Math.sin(w.walkPhase+((i===0||i===2)?0:Math.PI))*.07:0});if(mv)w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.025;mobAtk(w,dt);return 1}
 function mobSnap(){const a=[];for(const w of W){if(w.i==null||w.hx>=450)continue;a.push([w.i,Math.round(w.x*10)/10,Math.round(w.z*10)/10,w.hp,w.dead>0?1:0])}return{t:'m',a}}
 function mobApply(m){if(!Array.isArray(m.a))return;for(const e of m.a){const w=W[e[0]];if(!w||w.hx>=450)continue;const hp=+e[3]||0;
  if(hp!==w.hp){const dec=hp<w.hp;w.hp=hp;if(dec||hp<w.mhp)hit(w)}
