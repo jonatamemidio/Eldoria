@@ -1381,16 +1381,7 @@ function mkBear(stand,c,c2,s){
  [-1,1].forEach(sd=>{const[ex,ey]=onH(HR,ez,.3),[ax,ay]=onH(HR,az,.8);
   ell(g,dark,[sd*(ex+.004),ey,ez],[.03,.03,.03]);ell(g,fur,[sd*ax*1.1,ay+.02,az],[.075,.075,.035],[0,0,sd*-.4])});
  ell(g,dark,[0,L[0]-.005,L[1]-.025],[.06,.045,.05]);
- // mandíbula articulada + dentes (abre e fecha ao atacar, igual ao lobo)
- const J1=L[1]-.1,gp=z=>.012,tp=z=>{const m=at(HR,z);return m[0]-m[2]-gp(z)},jr=z=>.018+.065*(z-J0)/(J1-J0),
-  HY=at(HR,J0)[0]-at(HR,J0)[2],jw=new THREE.Group(),JZ=[0,1,2,3,4,5,6].map(i=>J0+(J1-J0)*i/6);
- // Mandíbula posicionada sob a cabeça, encaixada na linha inferior; pequena abertura natural.
- jw.position.set(0,HY+.285,J0);jw.rotation.y=0;g.add(jw);g.jw=jw;g.jk=.3;g.bearJawBreath=true;
- sweep(jw,JZ.map((z,i)=>[0,tp(z)-(i==6?.008:jr(z))-HY,z-J0]),JZ.map((z,i)=>[at(HR,z)[1]*(i==6?.25:.7),i==6?.008:jr(z)]),10,(u,sa)=>mx(C2,H3(0x3a1c20),ss(.35,.8,sa)),UP);
- const tm=mat(0xf1ecdc,.4),tooth=(x,z,up,r,h)=>{const m=at(HR,z),y=up?tp(z):m[0]-m[2]*Math.sqrt(Math.max(0,1-(x/m[1])**2))+.306,o=new THREE.Mesh(new THREE.ConeGeometry(r,h,6),tm);o.position.set(x,up?y+h*.5-HY:y-h*.5,up?z-J0:z);if(!up)o.rotation.x=Math.PI;o.castShadow=true;(up?jw:g).add(o)};
- [-1,1].forEach(sd=>{const zc=L[1]-.2,rx=at(HR,zc)[1];tooth(sd*rx*.6,zc,0,.016,.04);tooth(sd*rx*.45,zc+.035,1,.015,.05);
-  for(let j=0;j<3;j++){const z=zc-.16+j*.05,r=at(HR,z)[1];tooth(sd*r*.7,z,0,.008,.02);tooth(sd*r*.6,z+.025,1,.008,.022)}
-  tooth(sd*.025,L[1]-.1,0,.01,.03);tooth(sd*.022,L[1]-.105,1,.009,.024)});
+ // Mandíbula e dentes removidos conforme solicitado.
  // pata: perna/braço contínuo (coxa -> pulso) + pé achatado + 3 garras
  const limb=(x,y,z,pts,pr,ph,py,pz,psc)=>{const pv=new THREE.Group();pv.position.set(x,y,z);pv.userData.gaitPhase=ph;g.add(pv);
   sweep(pv,pts,pr,12,(u)=>mx(C,D,ss(.6,1,u)*.55),FW);
