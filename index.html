@@ -863,7 +863,7 @@ function npc(id,nome,x,z,sh,pa){const fm=['mara','lia','domadora','guarda4','gua
  const o={t:'npc',id,x,z,range:3,g,nome};g.userData.o=o;pick.push(g);OBJ.push(o);OB.push({x,z,r:.7});NPC[id]=o}
 npc('mara','Mara',5,-4,0xb03a5a,0x4a3a2a);npc('tomas','Guarda Tomás',-6,6,0x4a6a9a,0x333333);
 npc('lia','Capitã Lia',154,54,0xe8e8e8,0x24456b);const[FX,FZ]=offRoad(-100,-70,10);npc('bras','Capitão Brás',FX-5,FZ-5,0x6a6a6a,0x3a2a1a);
-// Lobos — modelo low-poly com anatomia mais próxima de um lobo: tronco alongado,
+// Eldoria animal pass 1 — lobo com malhas anatômicas low-poly: tronco alongado,
 // peito profundo, cintura marcada, pernas mais longas e cabeça/focinho bem definidos.
 const W=[];
 [[-72,-45],[-85,-60],[-60,-70],[-92,-30],[-50,-48]].forEach(([x0,z0])=>{
@@ -880,38 +880,41 @@ const W=[];
    const m=new THREE.Mesh(new THREE.IcosahedronGeometry(1,detail),mat);
    m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;
  };
- const seg=(a,b,r1,r2,mat,radial=7)=>{
+ // Segmentos anatômicos facetados e malha por anéis para volumes orgânicos low-poly.
+ const seg=(a,b,r1,r2,mat,radial=5)=>{
    const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);
-   const m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),radial,1),mat);
+   const m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),Math.max(5,radial),1,false),mat);
    m.position.copy(A.add(B).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
    m.castShadow=true;m.receiveShadow=true;g.add(m);return m;
+ };
+ const loft=(mat,rings,sides=7)=>{
+   const v=[],ix=[];
+   rings.forEach(([z,cy,rx,ry],j)=>{for(let k=0;k<sides;k++){const a=(k/sides)*Math.PI*2+Math.PI/sides,fac=1+.035*Math.cos(3*a+j*.45);v.push(Math.cos(a)*rx*fac,cy+Math.sin(a)*ry*fac,z)}});
+   for(let j=0;j<rings.length-1;j++)for(let k=0;k<sides;k++){const a=j*sides+k,b=j*sides+(k+1)%sides,c=(j+1)*sides+k,d=(j+1)*sides+(k+1)%sides;if((j+k)%2)ix.push(a,b,c,b,d,c);else ix.push(a,b,d,a,d,c)}
+   const start=v.length/3;v.push(0,rings[0][1],rings[0][0]);const end=v.length/3;v.push(0,rings[rings.length-1][1],rings[rings.length-1][0]);
+   for(let k=0;k<sides;k++){ix.push(start,(k+1)%sides,k);const a=(rings.length-1)*sides+k,b=(rings.length-1)*sides+(k+1)%sides;ix.push(end,a,b)}
+   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.setIndex(ix);geo.computeVertexNormals();
+   const mesh=new THREE.Mesh(geo,mat);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;
  };
  const tri=(mat,pts)=>{
    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pts.flat(),3));
    geo.setIndex([0,1,2]);geo.computeVertexNormals();
    const m=new THREE.Mesh(geo,mat);m.castShadow=true;g.add(m);return m;
  };
- // Corpo: perfil mais esguio, dorso firme, peito volumoso e cintura afinada.
- ell(fur,[0,1.13,-.10],[.34,.36,.76],1);                  // tronco alongado
- ell(furDark,[0,1.39,-.12],[.29,.105,.62],0);               // linha dorsal
- ell(fur,[0,1.18,.43],[.38,.43,.43],1);                     // peito/ombros
- ell(fur,[0,1.06,-.57],[.32,.35,.36],1);                    // garupa
- ell(cream,[0,.91,-.02],[.235,.16,.57],0);                  // ventre
- // Pescoço musculoso subindo em diagonal até a cabeça
- seg([0,1.13,.42],[0,1.48,.91],.29,.225,fur,8);
- ell(fur,[0,1.47,.79],[.265,.30,.34],1);
- ell(furDark,[0,1.27,.68],[.27,.22,.28],0);                 // peito alto
- ell(cream,[0,1.17,.72],[.20,.19,.26],0);                   // mancha de peito
- // Cabeça: crânio robusto, stop evidente, focinho comprido afilando para o nariz.
- ell(fur,[0,1.61,1.02],[.235,.245,.30],1);                 // crânio
- ell(furLight,[0,1.545,1.24],[.175,.145,.28],0);           // ponte do focinho
- ell(cream,[0,1.455,1.29],[.135,.085,.25],0);              // mandíbula inferior
- ell(noseMat,[0,1.535,1.51],[.095,.075,.095],0);           // nariz
+ // Tronco, pescoço e cabeça em malhas facetadas com perfis anatômicos variáveis.
+ loft(fur,[[-.98,1.02,.045,.07],[-.84,1.07,.20,.22],[-.62,1.10,.29,.30],[-.36,1.13,.31,.32],[-.08,1.15,.30,.31],[.17,1.18,.32,.34],[.38,1.23,.35,.39],[.53,1.27,.32,.38],[.66,1.30,.25,.30]],8);
+ loft(fur,[[.37,1.23,.28,.31],[.51,1.34,.28,.33],[.66,1.45,.24,.30],[.80,1.52,.22,.26],[.91,1.56,.20,.22]],7);
+ loft(fur,[[.77,1.57,.18,.19],[.88,1.60,.22,.23],[1.02,1.59,.21,.22],[1.14,1.55,.17,.17],[1.25,1.52,.13,.12],[1.37,1.51,.09,.075],[1.48,1.51,.045,.045]],7);
+ loft(cream,[[-.54,.91,.12,.045],[-.30,.92,.18,.075],[.00,.94,.19,.075],[.25,.99,.16,.08],[.48,1.08,.11,.07]],6);
+ ell(furDark,[0,1.40,.64],[.19,.075,.22],0);
+ ell(furLight,[0,1.55,1.20],[.12,.09,.22],0);
+ ell(cream,[0,1.465,1.23],[.10,.055,.20],0);
+ ell(noseMat,[0,1.515,1.47],[.065,.052,.065],0);
  // boca escura fina, olhos laterais, orelhas triangulares eretas
  [-1,1].forEach(side=>{
-   seg([side*.105,1.435,1.27],[side*.09,1.425,1.46],.012,.008,earMat,5);
-   ell(eyeMat,[side*.205,1.645,1.105],[.042,.034,.04],0);
-   ell(pupilMat,[side*.235,1.645,1.115],[.016,.026,.022],0);
+   seg([side*.095,1.465,1.20],[side*.075,1.455,1.37],.009,.006,earMat,5);
+   ell(eyeMat,[side*.184,1.635,.995],[.032,.027,.032],0);
+   ell(pupilMat,[side*.205,1.635,1.005],[.012,.021,.017],0);
    // orelha triangular com base larga, mais alta e recuada
    const ear=new THREE.Mesh(new THREE.ConeGeometry(.115,.30,4,1),furDark);
    ear.position.set(side*.145,1.865,.91);ear.rotation.z=-side*.16;ear.rotation.x=-.12;
@@ -919,7 +922,7 @@ const W=[];
    const inner=new THREE.Mesh(new THREE.ConeGeometry(.058,.18,4,1),earMat);
    inner.position.set(side*.145,1.875,.925);inner.rotation.z=-side*.16;inner.rotation.x=-.12;g.add(inner);
    // bochecha e volume do maxilar
-   ell(fur,[side*.19,1.43,.88],[.105,.17,.22],0);
+   ell(fur,[side*.16,1.48,.86],[.075,.11,.15],0);
  });
  // Cauda longa e espessa, descendo em curva atrás da garupa.
  seg([0,1.12,-.78],[0,1.00,-1.02],.135,.12,fur,7);
@@ -952,9 +955,9 @@ const W=[];
  // Juba facetada e discreta: placas acompanham o pescoço, sem formar espinhos enormes.
  const maneMats=[furDark,fur,furLight];
  const maneShards=[
-  [-.12,1.67,.48,.16,.25,.30,-.10],[.12,1.70,.57,.16,.26,.30,.10],
-  [-.11,1.75,.72,.15,.24,.28,-.10],[.11,1.77,.82,.15,.24,.28,.10],
-  [-.09,1.73,.96,.13,.21,.24,-.08],[.09,1.70,1.03,.13,.20,.23,.08],
+  [-.12,1.59,.48,.13,.20,.24,-.10],[.12,1.61,.57,.13,.21,.24,.10],
+  [-.11,1.66,.68,.12,.20,.23,-.10],[.11,1.67,.77,.12,.20,.23,.10],
+  [-.09,1.65,.83,.10,.17,.20,-.08],[.09,1.63,.89,.10,.17,.20,.08],
   [-.23,1.48,.61,.12,.20,.22,-.30],[.23,1.48,.61,.12,.20,.22,.30],
   [-.20,1.43,.82,.11,.18,.20,-.35],[.20,1.43,.82,.11,.18,.20,.35]
  ];
