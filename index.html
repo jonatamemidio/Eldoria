@@ -3685,15 +3685,21 @@ function drawMapOld(c,big){const x=c.getContext('2d'),s=c.width/420,m=(a)=>(a+21
 rebuildBuildingPlateaus();
 
 // entrada
-const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),ptr=new Map();let moved=0,pd=1,yaw=.8,pitch=.65,dist=17;
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),ptr=new Map();let moved=0,pd=1,yaw=.8,pitch=.65,dist=17,fp=0,fpPitch=0,fpOver=0,fpT=0,zinP=0,zoutP=0;
 const pinch=()=>{const a=[...ptr.values()];return a.length<2?1:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])};
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);moved=0;pd=pinch()});
 cv.addEventListener('pointermove',e=>{const o=ptr.get(e.pointerId);if(!o)return;const dx=e.clientX-o[0],dy=e.clientY-o[1];ptr.set(e.pointerId,[e.clientX,e.clientY]);
- if(ptr.size==2){const n=pinch();dist=clamp(dist*pd/n,6,40);pd=n;moved=99;return}
- moved+=Math.abs(dx)+Math.abs(dy);if(moved>8){yaw-=dx*.006;pitch=clamp(pitch+dy*.005,.2,1.3)}});
+ if(ptr.size==2){const n=pinch();camZoom(dist*(1-pd/n));pd=n;moved=99;return}
+ moved+=Math.abs(dx)+Math.abs(dy);if(moved>8){yaw-=dx*.006;if(fp)fpPitch=clamp(fpPitch-dy*.005,-1.3,1.3);else pitch=clamp(pitch+dy*.005,.2,1.3)}});
 cv.addEventListener('pointerup',e=>{if(ptr.size==1&&moved<=8)tap(e.clientX,e.clientY);ptr.delete(e.pointerId)});
 cv.addEventListener('pointercancel',e=>ptr.delete(e.pointerId));
-cv.addEventListener('wheel',e=>{dist=clamp(dist+e.deltaY*.02,6,40)});
+// Zoom: a>0 aproxima, a<0 afasta. No limite mínimo, mais um zoom de aproximar entra na primeira pessoa;
+// já na primeira pessoa, um zoom de afastar volta para a câmera em terceira pessoa.
+function camZoom(a){const n=performance.now();if(n-fpT>600)fpOver=0;fpT=n;
+ if(fp){fpOver-=a;if(fpOver>1.5){fp=0;fpOver=0;dist=6}return}
+ if(a>0&&dist<=6.001){fpOver+=a;if(fpOver>1.5){fp=1;fpOver=0;fpPitch=0;toast('👁️ Primeira pessoa · afaste o zoom para sair')}return}
+ fpOver=0;dist=clamp(dist-a,6,40)}
+cv.addEventListener('wheel',e=>{camZoom(-e.deltaY*.02)});
 function tap(cx,cy){const r=cv.getBoundingClientRect();ndc.set((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);ray.setFromCamera(ndc,cam);
  // Dentro da igreja, nunca deixe objetos do mundo exterior (especialmente a porta)
  // capturarem o clique no altar. Priorize o collider do altar e mantenha o clique no
@@ -3792,9 +3798,14 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
  {const t0=tod;tod=(tod+dt*(me.jail?1/48:1/1200))%1;if(tod<t0)q.day=(q.day||0)+1}const a=(tod-.25)*6.2832,sa=Math.sin(a),dy=clamp(sa*2+.4,0,1),py=H(me.x,me.z)+1.4;
  skyTick(a,sa,dy,py);hemi.intensity=.22+.7*dy;WIN.emissiveIntensity=(1-dy)*.9;
  if(me.houseScene){S.background.setHex(0x17120e);S.fog.color.setHex(0x17120e)}else{S.background.setHex(0x0a1428).lerp(DC,dy);S.fog.color.copy(S.background)}
- {const K=KEYS,kd=dt*1.9;if(K.ArrowLeft)yaw+=kd;if(K.ArrowRight)yaw-=kd;if(K.ArrowUp)pitch=clamp(pitch+kd*.7,.2,1.3);if(K.ArrowDown)pitch=clamp(pitch-kd*.7,.2,1.3);if(K.PageUp||K.Equal)dist=clamp(dist-dt*12,6,40);if(K.PageDown||K.Minus)dist=clamp(dist+dt*12,6,40)}
+ {const K=KEYS,kd=dt*1.9;if(K.ArrowLeft)yaw+=kd;if(K.ArrowRight)yaw-=kd;if(K.ArrowUp){if(fp)fpPitch=clamp(fpPitch+kd*.7,-1.3,1.3);else pitch=clamp(pitch+kd*.7,.2,1.3)}if(K.ArrowDown){if(fp)fpPitch=clamp(fpPitch-kd*.7,-1.3,1.3);else pitch=clamp(pitch-kd*.7,.2,1.3)}
+  const zin=!!(K.PageUp||K.Equal),zout=!!(K.PageDown||K.Minus);
+  if(zin&&!fp){if(dist>6.001)dist=clamp(dist-dt*12,6,40);else if(!zinP){fp=1;fpPitch=0;fpOver=0;toast('👁️ Primeira pessoa · afaste o zoom para sair')}}
+  if(zout){if(fp){if(!zoutP){fp=0;dist=6}}else dist=clamp(dist+dt*12,6,40)}
+  zinP=zin;zoutP=zout}
  let cd=me.houseScene?Math.min(dist,15):dist;for(let it=0;it<8;it++){const ax=me.x+Math.sin(yaw)*Math.cos(pitch)*cd,az=me.z+Math.cos(yaw)*Math.cos(pitch)*cd,ay=py+Math.sin(pitch)*cd;if(me.in||ay>7||!obBig(t).some(o=>{const ex=ax-o.x,ez=az-o.z,rr=o.r+.3;return ex*ex+ez*ez<rr*rr}))break;cd=Math.max(3,cd*.8)}
  const cx=me.x+Math.sin(yaw)*Math.cos(pitch)*cd,cz=me.z+Math.cos(yaw)*Math.cos(pitch)*cd;cam.position.set(cx,Math.max(py+Math.sin(pitch)*cd,H(cx,cz)+1.2),cz);cam.lookAt(me.x,py,me.z);
+if(fp){const fy=py+.12,cp=Math.cos(fpPitch);cam.position.set(me.x,fy,me.z);cam.lookAt(me.x-Math.sin(yaw)*cp,fy+Math.sin(fpPitch),me.z-Math.cos(yaw)*cp);pg.visible=false}else pg.visible=true;
 updateChurchCameraCutaway();occUpdate();
  R.render(S,cam)}
 const SK='minireino_v1',DC=new THREE.Color(0x9cc7ee);let wipe=0;
