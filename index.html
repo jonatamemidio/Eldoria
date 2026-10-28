@@ -863,125 +863,130 @@ function npc(id,nome,x,z,sh,pa){const fm=['mara','lia','domadora','guarda4','gua
  const o={t:'npc',id,x,z,range:3,g,nome};g.userData.o=o;pick.push(g);OBJ.push(o);OB.push({x,z,r:.7});NPC[id]=o}
 npc('mara','Mara',5,-4,0xb03a5a,0x4a3a2a);npc('tomas','Guarda Tomás',-6,6,0x4a6a9a,0x333333);
 npc('lia','Capitã Lia',154,54,0xe8e8e8,0x24456b);const[FX,FZ]=offRoad(-100,-70,10);npc('bras','Capitão Brás',FX-5,FZ-5,0x6a6a6a,0x3a2a1a);
-// Eldoria animal pass 2 — lobo com silhueta anatômica refinada, pernas reforçadas,
-// articulações mais naturais, patas largas e cabeça/focinho definidos.
+// Eldoria wolf rebuild — modelo quadrúpede detalhado, silhueta natural e animação por articulação.
 const W=[];
 [[-72,-45],[-85,-60],[-60,-70],[-92,-30],[-50,-48]].forEach(([x0,z0])=>{
  const [x,z]=safeSpot(x0,z0),g=new THREE.Group();
- const fur=new THREE.MeshStandardMaterial({color:0x777780,roughness:.92,flatShading:false}),
-       furLight=new THREE.MeshStandardMaterial({color:0xaaa7a2,roughness:.95,flatShading:false}),
-       furDark=new THREE.MeshStandardMaterial({color:0x4b4b55,roughness:.94,flatShading:false}),
-       cream=new THREE.MeshStandardMaterial({color:0xc9c1b5,roughness:.95,flatShading:false}),
-       earMat=new THREE.MeshStandardMaterial({color:0x3a3033,roughness:.95,flatShading:false}),
-       noseMat=new THREE.MeshStandardMaterial({color:0x171416,roughness:.45}),
-       eyeMat=new THREE.MeshStandardMaterial({color:0xd3a52d,roughness:.3}),
-       pupilMat=new THREE.MeshStandardMaterial({color:0x100e0d,roughness:.4});
- const ell=(mat,pos,scale,detail=1)=>{
-   const m=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),mat);
-   m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;
+ const mat=(color,roughness=.9)=>new THREE.MeshStandardMaterial({color,roughness});
+ const fur=mat(0x666873),furMid=mat(0x777a83),furLight=mat(0xa8a7a4),furCream=mat(0xc8c1b5),
+       furDark=mat(0x3d4049),earInner=mat(0x342b31),noseMat=mat(0x171719,.42),
+       mouthMat=mat(0x211b1c),eyeGold=mat(0xd7ad42,.35),pupilMat=mat(0x090a0c,.25),
+       glintMat=mat(0xf5eee0,.2),clawMat=mat(0x29252a,.65);
+ const sphereGeo=new THREE.SphereGeometry(1,24,16);
+ const ell=(parent,material,pos,scale,rot=null)=>{
+   const m=new THREE.Mesh(sphereGeo,material);m.position.set(...pos);m.scale.set(...scale);
+   if(rot)m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
  };
- // Segmentos anatômicos suavizados e malhas por anéis para volumes orgânicos.
- const seg=(a,b,r1,r2,mat,radial=5)=>{
+ const capsule=(parent,a,b,rTop,rBottom,material,radial=12)=>{
    const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A);
-   const m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),Math.max(16,radial),1,false),mat);
-   m.position.copy(A.add(B).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
-   m.castShadow=true;m.receiveShadow=true;g.add(m);return m;
+   const m=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,d.length(),radial,2,false),material);
+   m.position.copy(A.clone().add(B).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());
+   m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
  };
- const loft=(mat,rings,sides=28)=>{
+ const loft=(parent,material,rings,sides=32)=>{
    const v=[],ix=[];
-   rings.forEach(([z,cy,rx,ry],j)=>{for(let k=0;k<sides;k++){const a=(k/sides)*Math.PI*2+Math.PI/sides;v.push(Math.cos(a)*rx,cy+Math.sin(a)*ry,z)}});
-   for(let j=0;j<rings.length-1;j++)for(let k=0;k<sides;k++){const a=j*sides+k,b=j*sides+(k+1)%sides,c=(j+1)*sides+k,d=(j+1)*sides+(k+1)%sides;if((j+k)%2)ix.push(a,b,c,b,d,c);else ix.push(a,b,d,a,d,c)}
-   const start=v.length/3;v.push(0,rings[0][1],rings[0][0]);const end=v.length/3;v.push(0,rings[rings.length-1][1],rings[rings.length-1][0]);
-   for(let k=0;k<sides;k++){ix.push(start,(k+1)%sides,k);const a=(rings.length-1)*sides+k,b=(rings.length-1)*sides+(k+1)%sides;ix.push(end,a,b)}
+   rings.forEach(([zz,cy,rx,ry])=>{for(let k=0;k<sides;k++){const a=k/sides*Math.PI*2;v.push(Math.cos(a)*rx,cy+Math.sin(a)*ry,zz)}});
+   for(let j=0;j<rings.length-1;j++)for(let k=0;k<sides;k++){
+     const a=j*sides+k,b=j*sides+(k+1)%sides,c=(j+1)*sides+k,d=(j+1)*sides+(k+1)%sides;
+     ix.push(a,c,b,b,c,d);
+   }
    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.setIndex(ix);geo.computeVertexNormals();
-   const mesh=new THREE.Mesh(geo,mat);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;
+   const mesh=new THREE.Mesh(geo,material);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
  };
- const tri=(mat,pts)=>{
-   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pts.flat(),3));
-   geo.setIndex([0,1,2]);geo.computeVertexNormals();
-   const m=new THREE.Mesh(geo,mat);m.castShadow=true;g.add(m);return m;
+ const cone=(parent,material,pos,radius,height,rotZ=0)=>{
+   const m=new THREE.Mesh(new THREE.ConeGeometry(radius,height,16,3),material);
+   m.position.set(...pos);m.rotation.z=rotZ;m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
  };
- // Silhueta anatômica: tronco profundo, cintura estreita, pescoço integrado e crânio largo.
- loft(fur,[[-1.02,1.03,.10,.10],[-.98,1.04,.16,.17],[-.94,1.05,.19,.20],[-.78,1.08,.23,.24],[-.58,1.11,.29,.29],[-.34,1.14,.30,.31],[-.10,1.17,.29,.31],[.12,1.20,.31,.34],[.30,1.25,.34,.38],[.46,1.29,.34,.39],[.60,1.31,.29,.34],[.72,1.32,.20,.24]],28);
- // pescoço em transição gradual, mais robusto na base e afinando junto à nuca
- loft(fur,[ [.32,1.23,.24,.27],[.43,1.29,.27,.31],[.55,1.37,.26,.31],[.67,1.45,.23,.28],[.79,1.52,.20,.24],[.91,1.56,.19,.21],[.97,1.56,.17,.18],[1.00,1.57,.15,.16]],28);
- // crânio e focinho em malha contínua, com transições suaves e ponta do nariz definida
- loft(fur,[ [.73,1.56,.10,.12],[.82,1.59,.17,.18],[.94,1.60,.22,.22],[1.04,1.59,.23,.21],[1.13,1.56,.20,.17],[1.21,1.53,.16,.13],[1.28,1.51,.13,.105],[1.35,1.505,.105,.085],[1.40,1.50,.075,.065]],28);
- // queixo e garganta claros, fundidos visualmente ao peito
- loft(cream,[[-.53,.91,.09,.035],[-.38,.93,.15,.055],[-.17,.96,.17,.065],[.06,1.00,.15,.065],[.27,1.07,.12,.07],[.43,1.15,.085,.055]],24);
- // focinho superior e mandíbula inferior com volumes discretos, sem aparência de esfera solta
- ell(furDark,[0,1.475,1.265],[.105,.058,.19],1);
- ell(cream,[0,1.435,1.275],[.082,.038,.15],1);
- ell(noseMat,[0,1.505,1.455],[.052,.040,.047],1);
- // boca escura fina, olhos laterais, orelhas triangulares eretas
+ // Torso: deep ribcage, narrower waist and rounded rump.
+ ell(g,furMid,[0,1.13,-.12],[.32,.31,.76]);
+ ell(g,fur,[0,1.18,.30],[.34,.37,.48]);
+ ell(g,furMid,[0,1.18,-.55],[.29,.29,.40]);
+ ell(g,furDark,[0,1.10,-.78],[.21,.22,.20]);
+ // Shoulder blades and haunches blend into the torso.
  [-1,1].forEach(side=>{
-   seg([side*.095,1.465,1.20],[side*.075,1.455,1.37],.009,.006,earMat,5);
-   ell(eyeMat,[side*.207,1.635,.985],[.026,.023,.026],1);
-   ell(pupilMat,[side*.226,1.635,.992],[.009,.017,.012],1);
-   // Orelhas com base cheia e ponta suavizada: sem planos triangulares finos.
-   const ear=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),furDark);
-   ear.scale.set(.092,.145,.082);
-   ear.position.set(side*.155,1.775,.91);
-   ear.rotation.z=side*-.16;
-   ear.rotation.x=-.12;
-   ear.castShadow=true;ear.receiveShadow=true;g.add(ear);
-   const inner=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),earMat);
-   inner.scale.set(.046,.088,.020);
-   inner.position.set(side*.155,1.785,.978);
-   inner.rotation.z=side*-.16;
-   inner.castShadow=true;g.add(inner);
-   // bochecha e volume do maxilar
-   ell(fur,[side*.16,1.48,.86],[.075,.11,.15],0);
+   ell(g,furMid,[side*.245,1.10,.43],[.16,.29,.31],[side*.12,0,side*-.10]);
+   ell(g,furMid,[side*.225,1.02,-.53],[.19,.27,.30],[0,0,side*-.12]);
  });
- // Cauda longa e espessa, descendo em curva atrás da garupa.
- loft(fur,[[-1.53,.72,.075,.075],[-1.48,.735,.09,.09],[-1.43,.76,.10,.10],[-1.31,.83,.105,.11],[-1.17,.91,.125,.13],[-1.03,1.00,.14,.14],[-.88,1.09,.13,.13],[-.76,1.13,.105,.11]],24);
-
- // Pernas retrabalhadas: mais longas e robustas, com volumes de ombro/coxa
- // integrados ao tronco, joelhos definidos e patas largas apoiadas no chão.
- // O eixo X separa as pernas; Z positivo é a frente do lobo.
- const legs=[
-  {x:-.255,z:.49,kx:-.285,kz:.43,front:true},
-  {x: .255,z:.49,kx: .285,kz:.43,front:true},
-  {x:-.235,z:-.55,kx:-.285,kz:-.40,front:false},
-  {x: .235,z:-.55,kx: .285,kz:-.40,front:false}
- ];
+ // Neck rises forward from the chest, with a thick ruff.
+ ell(g,fur,[0,1.36,.55],[.27,.36,.34],[-.18,0,0]);
+ ell(g,furMid,[0,1.45,.68],[.235,.30,.28],[-.24,0,0]);
+ ell(g,furLight,[0,1.19,.64],[.20,.24,.20]);
+ ell(g,furCream,[0,1.10,.67],[.145,.19,.19]);
+ // Layered small tapered fur tufts along the chest and cheek silhouette.
+ for(let i=0;i<7;i++){
+   const xx=(i-3)*.055;
+   cone(g,i%2?furLight:furCream,[xx,1.00+Math.abs(i-3)*.012,.78+(i%2)*.025],.055,.19,xx*.8);
+ }
+ // Head, brow, muzzle and lower jaw.
+ ell(g,furMid,[0,1.60,.79],[.225,.235,.255]);
+ ell(g,fur,[0,1.57,.91],[.19,.19,.22]);
+ ell(g,furDark,[0,1.515,1.055],[.125,.105,.205]);
+ ell(g,furLight,[0,1.485,1.105],[.105,.075,.18]);
+ ell(g,furCream,[0,1.425,1.105],[.085,.045,.145]);
+ ell(g,noseMat,[0,1.51,1.245],[.067,.052,.065]);
+ // Mouth line and lips on both sides.
+ ell(g,mouthMat,[0,1.442,1.18],[.078,.012,.105]);
+ [-1,1].forEach(side=>{
+   // Cheeks, cheek-fur tufts and eye sockets.
+   ell(g,furMid,[side*.158,1.535,.83],[.092,.115,.145],[0,side*.10,side*-.12]);
+   ell(g,furDark,[side*.198,1.635,.875],[.047,.055,.075]);
+   ell(g,eyeGold,[side*.216,1.637,.89],[.027,.025,.032]);
+   ell(g,pupilMat,[side*.237,1.638,.897],[.010,.019,.014]);
+   ell(g,glintMat,[side*.242,1.647,.905],[.005,.006,.006]);
+   // Heavy brow gives the wolf a focused expression.
+   ell(g,furDark,[side*.192,1.685,.89],[.065,.027,.083],[0,side*.12,side*-.18]);
+   // Pointed ears with dark inner fur.
+   const ear=cone(g,furDark,[side*.145,1.86,.735],.105,.30,side*-.18);
+   ear.rotation.x=-.10;
+   ell(g,earInner,[side*.148,1.865,.802],[.039,.095,.018],[-.10,0,side*-.18]);
+   // Whisker follicles and short whisker lines.
+   for(let j=0;j<3;j++)ell(g,furDark,[side*(.095+j*.025),1.47-j*.012,1.13-j*.018],[.009,.008,.009]);
+   // Ear/cheek ruff tufts.
+   for(let j=0;j<3;j++)cone(g,j===1?furLight:furMid,[side*(.19+j*.018),1.48-j*.055,.76-j*.018],.045,.12,side*-.35);
+ });
+ // Curved bushy tail with a darker tip.
+ const tailCurve=new THREE.CatmullRomCurve3([
+   new THREE.Vector3(0,1.05,-.72),new THREE.Vector3(0,.94,-.94),
+   new THREE.Vector3(0,.79,-1.13),new THREE.Vector3(0,.68,-1.34),
+   new THREE.Vector3(0,.65,-1.49)
+ ]);
+ const tail=new THREE.Mesh(new THREE.TubeGeometry(tailCurve,24,.105,12,false),furMid);
+ tail.castShadow=true;tail.receiveShadow=true;g.add(tail);
+ ell(g,furDark,[0,.65,-1.48],[.095,.095,.14]);
+ // Individual leg assemblies: all geometry is local to a pivot at the shoulder/hip.
  const legPivots=[];
- legs.forEach(({x:lx,z:lz,kx,kz,front})=>{
-   // Cada perna passa a ter um pivô próprio no quadril/ombro para poder balançar ao andar.
-   const hipY=front? .94:.91, hip=[lx,hipY,lz], firstChild=g.children.length;
-   const legMat=front?fur:furDark;
-   const kneeY=front? .53:.56, ankleY=.105;
-   const knee=[kx,kneeY,kz];
-   const ankle=[lx*.94,ankleY,lz+(front?.075:-.055)];
-   // Ombro e coxa com volume maior para não parecerem palitos sob o tronco.
-   ell(legMat,[lx,hipY,lz],[front?.145:.175,front?.235:.255,front?.17:.20],1);
-   // Parte superior da perna com afunilamento natural.
-   seg(hip,knee,front?.125:.155,front?.092:.105,legMat,20);
-   ell(legMat,knee,[front?.092:.105,.095,.095],1);
-   // Canela levemente inclinada, mantendo a pata na altura do terreno.
-   seg(knee,ankle,front?.078:.085,.057,front?fur:furDark,18);
-   ell(legMat,[ankle[0],.19,ankle[2]-.005],[.068,.105,.072],1);
-   // Patas mais largas e compridas, com dedos arredondados e discretas garras.
-   ell(furDark,[ankle[0],.065,ankle[2]+.065],[.112,.052,.145],1);
-   [-1,0,1].forEach(d=>{
-     ell(furDark,[ankle[0]+d*.041,.052,ankle[2]+.145],[.032,.022,.045],0);
-     ell(noseMat,[ankle[0]+d*.041,.045,ankle[2]+.178],[.010,.009,.018],0);
-   });
-   // Reagrupa as peças da perna sem alterar sua posição inicial, deixando-as girar juntas.
-   const pivot=new THREE.Group();
-   pivot.position.set(lx,hipY,lz);
-   const parts=g.children.slice(firstChild);
-   parts.forEach(part=>{
-     g.remove(part);
-     part.position.x-=lx; part.position.y-=hipY; part.position.z-=lz;
-     pivot.add(part);
-   });
-   g.add(pivot);
+ const legDefs=[
+   {x:-.245,z:.43,front:true,phase:0},
+   {x:.245,z:.43,front:true,phase:Math.PI},
+   {x:-.225,z:-.52,front:false,phase:Math.PI},
+   {x:.225,z:-.52,front:false,phase:0}
+ ];
+ legDefs.forEach(({x:lx,z:lz,front,phase})=>{
+   const pivot=new THREE.Group();pivot.position.set(lx,front?1.02:.99,lz);pivot.userData.gaitPhase=phase;g.add(pivot);
+   const top=front?furMid:fur;
+   // Shoulder/upper thigh, elbow/hock, lower leg and paw are joined as a single animated assembly.
+   ell(pivot,top,[0,-.04,0],[front?.145:.17,front?.22:.245,front?.17:.19]);
+   capsule(pivot,[0,-.10,0],[0,-.36,front?.025:-.08],front?.115:.14,front?.085:.10,top,16);
+   ell(pivot,furDark,[0,-.365,front?.025:-.08],[.09,.09,.095]);
+   capsule(pivot,[0,-.38,front?.025:-.08],[0,-.76,front?.07:-.02],.082,.052,front?furMid:furDark,14);
+   ell(pivot,furMid,[0,-.72,front?.07:-.02],[.066,.11,.075]);
+   // Broad paw with three separated toes and visible small claws.
+   ell(pivot,furDark,[0,-.91,front?.15:-.10],[.105,.055,.155]);
+   for(let toe=-1;toe<=1;toe++){
+     ell(pivot,furMid,[toe*.052,-.925,front?.245:-.005],[.039,.039,.075]);
+     ell(pivot,clawMat,[toe*.052,-.935,front?.302:-.055],[.014,.018,.035]);
+   }
+   // Subtle fur tufts at the elbow and ankle.
+   ell(pivot,furLight,[lx<0?-.06:.06,-.22,front?.045:-.10],[.04,.09,.07]);
    legPivots.push(pivot);
  });
- // Acabamento anatômico liso: sem placas, escamas ou mechas sobrepostas.
- // A silhueta é formada pelo tronco, pescoço e cabeça contínuos.
- const l=label('Lobo - Nível 6','#ff8080',.7);l.position.y=2.15;g.add(l);
+ // Fine coat accents across shoulders and rump, avoiding noisy armor-like clumps.
+ for(let side of [-1,1]){
+   for(let i=0;i<4;i++){
+     ell(g,i%2?furMid:furLight,[side*(.28+i*.006),1.23-i*.055,.25-i*.11],[.035,.075,.09],[0,0,side*-.25]);
+   }
+ }
+ const l=label('Lobo - Nível 6','#ff8080',.7);l.position.y=2.22;g.add(l);
  const bc=document.createElement('canvas');bc.width=128;bc.height=24;
  const bs=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(bc),depthTest:false,transparent:true,fog:false}));
  bs.scale.set(1.8,.34,1);bs.position.y=2.7;bs.visible=false;g.add(bs);
@@ -3754,7 +3759,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(d<14&&d>1.8){gx=dx;gz=dz;mv=3.4}else if(d>=14&&Math.hypot(w.hx-w.x,w.hz-w.z)>3){gx=w.hx-w.x;gz=w.hz-w.z;mv=2}
   if(mv){const l=Math.hypot(gx,gz);w.x+=gx/l*mv*dt;w.z+=gz/l*mv*dt;if(H(w.x,w.z)<-.2){w.x-=gx/l*mv*dt;w.z-=gz/l*mv*dt}face(w.g,gx,gz,dt)}else if(d<=14)face(w.g,dx,dz,dt);
   w.cd-=dt;if(d<=2&&w.cd<=0){w.cd=2.4;w.ln=.3;w.at=.6;if(tg.r){const c=MP.conns[tg.r];try{if(c&&c.open)c.send({t:'a',i:w.i})}catch(e){}}else mobStrike(w)}
-  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));w.walkPhase=(w.walkPhase||0)+(mv?dt*11:0);const gait=mv?Math.sin(w.walkPhase)*.78:0;w.lg.forEach((leg,i)=>{const side=(i===0||i===3)?1:-1;leg.rotation.x=gait*side;leg.rotation.z=mv?Math.sin(w.walkPhase+((i===0||i===2)?0:Math.PI))*.07:0});if(mv)w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.035;mobAtk(w,dt)}
+  w.ln=Math.max(0,(w.ln||0)-dt);const lg2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+lg2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+lg2*Math.cos(w.g.rotation.y));w.walkPhase=(w.walkPhase||0)+(mv?dt*11:0);w.lg.forEach((leg,i)=>{const phase=leg.userData.gaitPhase||0;leg.rotation.x=mv?Math.sin(w.walkPhase+phase)*.72:0;leg.rotation.z=mv?Math.sin(w.walkPhase+phase)*.045:0});if(mv)w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.035;mobAtk(w,dt)}
  {mnT+=dt;if(mnT>.25){mnT=0;for(const w of W)if(w.lbl){const dx=me.x-w.x,dz=me.z-w.z;w.lbl.visible=dx*dx+dz*dz<LN2}}}
  for(let i=SP.length-1;i>=0;i--){const p=SP[i];p.t-=dt;p.s.position.y=p.y+(1-p.t)*.6;p.s.material.opacity=Math.min(1,p.t*2);if(p.t<=0){S.remove(p.s);SP.splice(i,1)}}
  for(const k in NPC){const n=NPC[k],dx=me.x-n.x,dz=me.z-n.z,d2=dx*dx+dz*dz;if(d2>PV2){if(n.g.visible){n.g.visible=false;n.qh=1}continue}if(n.qh){n.qh=0;n.g.visible=true}if(d2>PA2)continue;if(d2<120)face(n.g,dx,dz,dt);pose(n.g,t+k.length*2,'')}
@@ -3954,7 +3959,7 @@ function mobGuest(w,dt){if(!(MP.peer&&MP.id&&!MP.host&&w.hx<450&&w.i!=null))retu
  if(w.bt>0){w.bt-=dt;if(w.bt<=0)w.bs.visible=false}if(w.dead>0)return 1;let mv=0;
  if(w.tx!=null){const dx=w.tx-w.x,dz=w.tz-w.z,d=Math.hypot(dx,dz);if(d>30){w.x=w.tx;w.z=w.tz}else{const k=Math.min(1,dt*8);w.x+=dx*k;w.z+=dz*k}if(d>.12){mv=1;face(w.g,dx,dz,dt)}}
  w.ln=Math.max(0,(w.ln||0)-dt);const l2=Math.sin(w.ln/.3*Math.PI)*.5;w.g.position.set(w.x+l2*Math.sin(w.g.rotation.y),H(w.x,w.z),w.z+l2*Math.cos(w.g.rotation.y));
- w.walkPhase=(w.walkPhase||0)+(mv?dt*11:0);const sv=mv?Math.sin(w.walkPhase)*.78:0;w.lg.forEach((l,i)=>{const side=(i===0||i===3)?1:-1;l.rotation.x=sv*side;l.rotation.z=mv?Math.sin(w.walkPhase+((i===0||i===2)?0:Math.PI))*.07:0});if(mv)w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.025;mobAtk(w,dt);return 1}
+ w.walkPhase=(w.walkPhase||0)+(mv?dt*11:0);w.lg.forEach((l,i)=>{const phase=l.userData.gaitPhase||0;l.rotation.x=mv?Math.sin(w.walkPhase+phase)*.72:0;l.rotation.z=mv?Math.sin(w.walkPhase+phase)*.045:0});if(mv)w.g.position.y+=Math.abs(Math.sin(w.walkPhase*2))*.025;mobAtk(w,dt);return 1}
 function mobSnap(){const a=[];for(const w of W){if(w.i==null||w.hx>=450)continue;a.push([w.i,Math.round(w.x*10)/10,Math.round(w.z*10)/10,w.hp,w.dead>0?1:0])}return{t:'m',a}}
 function mobApply(m){if(!Array.isArray(m.a))return;for(const e of m.a){const w=W[e[0]];if(!w||w.hx>=450)continue;const hp=+e[3]||0;
  if(hp!==w.hp){const dec=hp<w.hp;w.hp=hp;if(dec||hp<w.mhp)hit(w)}
