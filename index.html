@@ -1089,7 +1089,7 @@ function mobReward(o,mine,bones){addXp('combate',o.kx||14);say(mine?'Você derro
 // ===== animação de ataque dos inimigos (humanoides: golpe por cima do ombro; quadrúpedes: patada/mordida) =====
 function wolfJaw(p){return p<.4?.45*Math.sin(p/.4*Math.PI/2):p<.55?.45-.59*((p-.4)/.15):-.14*(1-(p-.55)/.45)}
 function mobAtk(w,dt){const g=w.g;if(!g)return;
- if(g.jw){const a=w.at>0?wolfJaw(1-w.at/.6):0;g.jw.rotation.x=a<0?a*(g.jk==null?1:g.jk):a}
+ if(g.jw){const a=w.at>0?wolfJaw(1-w.at/.6):0;g.jw.rotation.x=w.at>0?(a<0?a*(g.jk==null?1:g.jk):a):(g.bearJawBreath?.075+.035*Math.sin(performance.now()*.0018):0)}
  if(!(w.at>0)){if(w.atd){w.atd=0;if(g.tor)g.tor.rotation.y=0;if(g.hd)g.hd.rotation.x=0}return}
  w.at=Math.max(0,w.at-dt);w.atd=1;const p=1-w.at/.6;
  if(g.tor&&g.eR&&g.eL){
@@ -1370,7 +1370,7 @@ function mkBear(stand,c,c2,s){
  // cabeça (e corpo, no quadrúpede): linhas [y do centro, z, meia-largura, meia-altura]
  const HB=stand?[[1.97,.12,.05,.05],[1.99,.2,.2,.2],[2.0,.3,.26,.27],[1.97,.42,.22,.22],[1.9,.54,.15,.14],[1.86,.64,.10,.09],[1.85,.7,.07,.065],[1.848,.74,.008,.008]]
   :[[.70,-.80,.02,.02],[.72,-.72,.20,.20],[.74,-.45,.34,.36],[.72,-.10,.37,.40],[.78,.25,.38,.44],[.82,.45,.35,.44],[.84,.62,.30,.36],[.84,.78,.27,.30],[.84,.90,.26,.27],[.82,1.02,.25,.25],[.78,1.14,.19,.19],[.72,1.26,.125,.12],[.70,1.36,.10,.09],[.69,1.43,.075,.065],[.685,1.47,.01,.01]];
- const HR=res(HB),L=HR[HR.length-1],sn=stand?.5:1.14,J0=stand?.34:1.0;
+ const HR=res(HB),L=HR[HR.length-1],sn=stand?.5:1.14,J0=stand?.34:.92;
  sweep(g,HR.map(r=>[0,r[0],r[1]]),HR.map(r=>[r[2],r[3]]),22,(u,sa,ca,p)=>{
   let k=mx(C,C2,ss(sn,sn+.12,p.z)*.85);k=mx(k,C2,ss(.1,-.8,sa)*.35);
   k=k.map(x=>x*(1-.14*ss(.2,1,sa))*(.97+.03*Math.sin(p.z*9+p.x*7)));
@@ -1382,11 +1382,12 @@ function mkBear(stand,c,c2,s){
   ell(g,dark,[sd*(ex+.004),ey,ez],[.03,.03,.03]);ell(g,fur,[sd*ax*1.1,ay+.02,az],[.075,.075,.035],[0,0,sd*-.4])});
  ell(g,dark,[0,L[0]-.005,L[1]-.025],[.06,.045,.05]);
  // mandíbula articulada + dentes (abre e fecha ao atacar, igual ao lobo)
- const J1=L[1]-.1,gp=z=>-.07,tp=z=>{const m=at(HR,z);return m[0]-m[2]-gp(z)},jr=z=>.045*(1-.3*(z-J0)/(J1-J0)),
+ const J1=L[1]-.1,gp=z=>.012,tp=z=>{const m=at(HR,z);return m[0]-m[2]-gp(z)},jr=z=>.018+.065*(z-J0)/(J1-J0),
   HY=at(HR,J0)[0]-at(HR,J0)[2],jw=new THREE.Group(),JZ=[0,1,2,3,4,5,6].map(i=>J0+(J1-J0)*i/6);
- jw.position.set(0,HY,J0);g.add(jw);g.jw=jw;g.jk=.3;
+ // Mandíbula posicionada sob a cabeça, encaixada na linha inferior; pequena abertura natural.
+ jw.position.set(0,HY+.285,J0);jw.rotation.y=0;g.add(jw);g.jw=jw;g.jk=.3;g.bearJawBreath=true;
  sweep(jw,JZ.map((z,i)=>[0,tp(z)-(i==6?.008:jr(z))-HY,z-J0]),JZ.map((z,i)=>[at(HR,z)[1]*(i==6?.25:.7),i==6?.008:jr(z)]),10,(u,sa)=>mx(C2,H3(0x3a1c20),ss(.35,.8,sa)),UP);
- const tm=mat(0xf1ecdc,.4),tooth=(x,z,up,r,h)=>{const m=at(HR,z),y=up?tp(z):m[0]-m[2]*Math.sqrt(Math.max(0,1-(x/m[1])**2))+.006,o=new THREE.Mesh(new THREE.ConeGeometry(r,h,6),tm);o.position.set(x,up?y+h*.5-HY:y-h*.5,up?z-J0:z);if(!up)o.rotation.x=Math.PI;o.castShadow=true;(up?jw:g).add(o)};
+ const tm=mat(0xf1ecdc,.4),tooth=(x,z,up,r,h)=>{const m=at(HR,z),y=up?tp(z):m[0]-m[2]*Math.sqrt(Math.max(0,1-(x/m[1])**2))+.306,o=new THREE.Mesh(new THREE.ConeGeometry(r,h,6),tm);o.position.set(x,up?y+h*.5-HY:y-h*.5,up?z-J0:z);if(!up)o.rotation.x=Math.PI;o.castShadow=true;(up?jw:g).add(o)};
  [-1,1].forEach(sd=>{const zc=L[1]-.2,rx=at(HR,zc)[1];tooth(sd*rx*.6,zc,0,.016,.04);tooth(sd*rx*.45,zc+.035,1,.015,.05);
   for(let j=0;j<3;j++){const z=zc-.16+j*.05,r=at(HR,z)[1];tooth(sd*r*.7,z,0,.008,.02);tooth(sd*r*.6,z+.025,1,.008,.022)}
   tooth(sd*.025,L[1]-.1,0,.01,.03);tooth(sd*.022,L[1]-.105,1,.009,.024)});
