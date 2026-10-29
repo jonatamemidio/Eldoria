@@ -1,132 +1,126 @@
-/* Eldoria - Service Worker para GitHub Pages */
+```javascript
+/* Eldoria — Service Worker
+ * Cache local files for faster loading and basic offline support.
+ * Keep this file in the same folder as index.html.
+ */
 
-const CACHE = 'eldoria-v1';
+const CACHE_NAME = 'eldoria-cache-v1';
+const OFFLINE_URLS = ['./', './index.html'];
 
-const CORE = [
-  './',
-  './index.html'
-];
-
-const OPTIONAL = [
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png',
-  './apple-touch-icon.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'
-];
-
-// INSTALAÇÃO
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
 
-    const cache = await caches.open(CACHE);
-
-    await cache.addAll(CORE);
-
-    await Promise.allSettled(
-      OPTIONAL.map(url => cache.add(url))
-    );
+    // Cache only resources that exist. A missing optional path should not
+    // prevent the service worker from installing.
+    await Promise.all(OFFLINE_URLS.map(async (url) => {
+      try {
+        const response = await fetch(url, { cache: 'reload' });
+        if (response.ok) {
+          await cache.put(url, response);
+        }
+      } catch (_) {
+        // Continue even if the browser is offline during installation.
+      }
+    }));
 
     await self.skipWaiting();
-
   })());
 });
 
-// ATIVAÇÃO E LIMPEZA DE CACHE ANTIGO
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-
     const keys = await caches.keys();
 
     await Promise.all(
       keys
-        .filter(key =>
-          key.startsWith('eldoria-') &&
-          key !== CACHE
+        .filter(
+          (key) =>
+            key.startsWith('eldoria-cache-') &&
+            key !== CACHE_NAME
         )
-        .map(key => caches.delete(key))
+        .map((key) => caches.delete(key))
     );
 
     await self.clients.claim();
-
   })());
 });
 
-// FUNCIONAMENTO OFFLINE
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
 
-  if (event.request.method !== 'GET') return;
+  if (request.method !== 'GET') {
+    return;
+  }
 
-  const url = new URL(event.request.url);
+  const url = new URL(request.url);
 
-  if (!['http:', 'https:'].includes(url.protocol)) return;
+  // Leave external libraries and third-party resources to the browser.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
 
-  const sameOrigin = url.origin === self.location.origin;
-
-  const supportedCDN =
-    url.hostname === 'cdnjs.cloudflare.com' &&
-    (/\/ajax\/libs\/(three\.js|peerjs)\//).test(url.pathname);
-
-  if (!sameOrigin && !supportedCDN) return;
-
-  // Navegação: tenta internet primeiro
-  if (sameOrigin && event.request.mode === 'navigate') {
-
+  // For page navigation, prefer the latest version.
+  // If offline, use the cached index.html as a fallback.
+  if (request.mode === 'navigate') {
     event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
 
       try {
+        const response = await fetch(request);
 
-        const response = await fetch(event.request);
-
-        if (response.ok) {
-          (await caches.open(CACHE))
-            .put(event.request, response.clone());
+        if (response && response.ok) {
+          cache.put('./index.html', response.clone()).catch(() => {});
         }
 
         return response;
-
       } catch (_) {
-
         return (
-          (await caches.match(event.request)) ||
-          (await caches.match('./index.html')) ||
-          Response.error()
+          await cache.match(request) ||
+          await cache.match('./index.html') ||
+          new Response(
+            'Eldoria está offline. Conecte-se à internet e tente novamente.',
+            {
+              status: 503,
+              headers: {
+                'Content-Type': 'text/plain; charset=utf-8'
+              }
+            }
+          )
         );
-
       }
-
     })());
 
     return;
   }
 
-  // Outros arquivos: tenta cache primeiro
+  // For same-origin assets, use cache first and update the cache
+  // in the background when the network is available.
   event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
 
-    const cached = await caches.match(event.request);
-
-    if (cached) return cached;
-
-    try {
-
-      const response = await fetch(event.request);
-
-      if (response.ok || response.type === 'opaque') {
-
-        (await caches.open(CACHE))
-          .put(event.request, response.clone());
-
+    const networkPromise = fetch(request).then((response) => {
+      if (response && (response.ok || response.type === 'opaque')) {
+        cache.put(request, response.clone()).catch(() => {});
       }
 
       return response;
+    });
 
-    } catch (_) {
-
-      return Response.error();
-
+    if (cached) {
+      event.waitUntil(networkPromise.catch(() => {}));
+      return cached;
     }
 
+    try {
+      return await networkPromise;
+    } catch (_) {
+      return new Response('', {
+        status: 504,
+        statusText: 'Gateway Timeout'
+      });
+    }
   })());
-
 });
+```
